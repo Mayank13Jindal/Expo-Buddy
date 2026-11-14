@@ -27,7 +27,9 @@ Steps:
    missing, install it with the official script (get.docker.com) and add me to the
    docker group. Then tell me to log out and log back in, and wait for me.
 3. Clone the repo and cd into it.
-4. Run ./scripts/docker.sh setup
+4. Ask me: "Should the app ask for a password when it opens? (Recommended.)"
+   If yes, run ./scripts/docker.sh setup --password
+   If no, run ./scripts/docker.sh setup --no-password
 5. Run ./scripts/docker.sh models and then ./scripts/docker.sh models --kind embeddings.
    These are slow. Do not interrupt or re-run them while they are working.
 6. Run docker compose up -d --build --wait, then check docker compose ps shows all
@@ -64,7 +66,7 @@ sudo usermod -aG docker $USER
 git clone https://github.com/Mayank13Jindal/Expo-Buddy.git
 cd Expo-Buddy
 
-# 3. Create settings and secrets
+# 3. Create settings and secrets (it asks whether to use a password; y is recommended)
 ./scripts/docker.sh setup
 
 # 4. Download the AI models (this can take a while, don't stop it)
@@ -124,6 +126,11 @@ cd Expo-Buddy
 ./scripts/docker.sh setup
 ```
 
+Setup asks whether the app should ask for a password. Answer **y** (recommended):
+you then create your password the first time you open the app. Answer **n** only if
+the app stays on this computer; without a password, anyone who can reach it has full
+access.
+
 This creates:
 
 | What | Where | Notes |
@@ -170,16 +177,16 @@ Go to **https://localhost:8443**.
 
 ### 9. Create your password
 
-The first time you open the app, it asks you to create a password. Keep it safe.
-If you forget it, reset it on the server:
+If you chose a password in step 4, the app asks you to create it the first time
+you open it. Keep it safe. If you forget it, reset it on the server:
 
 ```sh
 docker compose exec api python -m app.core.reset_password
 ```
 
-Set up before password sign-in became the default? If `.env` has
-`PASSWORDLESS=true`, set a password with the command above, change it to
-`PASSWORDLESS=false`, then run `docker compose up -d --wait`.
+To change your choice later, edit `PASSWORDLESS` in `.env` (`false` asks for a
+password, `true` does not), then run `docker compose up -d --wait`. When switching
+from password-free to a password, set the password with the command above first.
 
 ### 10. Optional: use it on your phone
 

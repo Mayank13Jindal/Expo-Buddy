@@ -20,7 +20,8 @@ The app refuses missing or mismatched markers rather than silently writing to a
 replacement directory. Existing `.env` files are preserved.
 
 Local defaults: `https://localhost:8443`, loopback-only gateway, UTC timezone,
-password sign-in (you create the password on first use), cloud processing disabled,
+password sign-in unless you answer no to setup's password question (you create the
+password on first use), cloud processing disabled,
 and all data under `.local/data`.
 The local backup folder shares the data disk; copy snapshots to another physical
 device for recovery from disk failure. Do not upload `.local` or `.secrets`.
@@ -79,7 +80,8 @@ filesystem check alone cannot prove disk independence. Local setup can also take
 `--config storage.local.json` for a custom origin on a single-disk host.
 
 Optional JSON keys `timezone` (for example `Europe/London`) and `passwordless`
-(`true` or `false`, default `false`) control those generated settings. A different `.env` is never
+(`true` or `false`, default `false`) control those generated settings. Setup's
+`--password` and `--no-password` flags override the config and skip the question. A different `.env` is never
 overwritten. Changing an existing origin requires reconfiguration and restarting
 the stack; do not discard existing storage markers or secret files.
 

@@ -35,8 +35,7 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - name: Create settings with password sign-in
         run: |
-          echo '{"passwordless": false}' > "$RUNNER_TEMP/expo-buddy.json"
-          python3 scripts/setup.py --local --config "$RUNNER_TEMP/expo-buddy.json"
+          python3 scripts/setup.py --local --password
       - name: Cache models
         uses: actions/cache@v4
         with:
