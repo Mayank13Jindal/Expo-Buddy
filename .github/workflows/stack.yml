@@ -52,7 +52,7 @@ jobs:
         run: docker compose up -d --build --wait --wait-timeout 600
       - name: Integration tests
         run: |
-          python -m pip install --require-hashes -r backend/requirements-dev.lock
+          python -m pip install --require-hashes -r requirements-dev.lock
           python -m pytest -m integration -q
         working-directory: backend
       - name: Trust the stack's local HTTPS certificate
