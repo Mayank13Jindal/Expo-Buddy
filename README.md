@@ -2,6 +2,8 @@
 
 ![Expo Buddy — turn expo discoveries into organized contacts](docs/images/banner.png)
 
+![Vibe coded with Codex and Claude Code](https://img.shields.io/badge/vibe%20coded%20with-Codex%20%26%20Claude%20Code-8A2BE2)
+
 A self-hosted home for the people, companies and ideas you collect at expos.
 Scan visiting cards and brochures, check extracted details beside the originals,
 keep private notes, and export the contacts you want to follow up with.
@@ -45,6 +47,8 @@ Steps:
 2. Check Docker Engine and "docker compose version" work without sudo. If Docker is
    missing, install it with the official script (get.docker.com) and add me to the
    docker group. Then tell me to log out and log back in, and wait for me.
+   If you added me to the docker group, I will log out, log back in, open you
+   again and paste this prompt again. Then skip the steps that are already done.
 3. Clone the repo and cd into it.
 4. Ask me: "Should the app ask for a password when it opens? (Recommended.)"
    If yes, run ./scripts/docker.sh setup --password
@@ -55,7 +59,8 @@ Steps:
    services healthy. If something fails, read docker compose logs --tail=100 and fix it.
 7. Trust the HTTPS certificate at
    .secrets/caddy-data/caddy/pki/authorities/local/root.crt in the system store.
-8. Confirm https://localhost:8443 responds, and tell me to open it in my browser.
+8. If I use Chrome or Chromium, install libnss3-tools and run ./scripts/trust-local-ca.sh.
+9. Confirm https://localhost:8443 responds, and tell me to open it in my browser.
 
 Rules:
 - Never run ./scripts/docker.sh with sudo.
@@ -82,7 +87,7 @@ curl -fsSL https://get.docker.com | sh
 sudo usermod -aG docker "$USER"
 ```
 
-Log out and log back in before continuing, so Docker works without `sudo`.
+**Log out and log back in before step 2**, so Docker works without `sudo`.
 
 #### 2. Get the code
 
@@ -135,9 +140,19 @@ sudo update-ca-certificates
 ```
 
 Open **https://localhost:8443**. If the browser still warns about the certificate,
-fully restart it. Chrome/Chromium may also need `./scripts/trust-local-ca.sh`
-with `certutil` installed. Trust only the public `root.crt`; never share its
-private key or disable certificate verification.
+fully restart it. For Chrome/Chromium, also run:
+
+```sh
+sudo apt install -y libnss3-tools
+./scripts/trust-local-ca.sh
+```
+
+Firefox keeps its own list. Open **Settings > Privacy & Security > Certificates >
+View Certificates > Authorities > Import**, pick `root.crt`, and tick
+**Trust this CA to identify websites**.
+
+Trust only the public `root.crt`; never share its private key or disable
+certificate verification.
 
 ### Password and phone access
 
@@ -147,6 +162,8 @@ time you open it. If you forget it, reset it on the server:
 ```sh
 docker compose exec api python -m app.core.reset_password
 ```
+
+This only works after the account exists (after you first open the app).
 
 To change your choice later, edit `PASSWORDLESS` in `.env` (`false` asks for a
 password, `true` does not), then run `docker compose up -d --wait`. When switching
@@ -168,6 +185,15 @@ docker compose up -d --wait       # start again
 [.env.example](.env.example) documents configuration; setup generates the actual
 values and secrets. [Recovery instructions](docs/backup-restore.md) explain how to
 restore into a new database before cutover.
+
+## How this was built
+
+Expo Buddy is vibe coded. The code was written with AI coding agents,
+[OpenAI Codex](https://openai.com/codex/) and
+[Claude Code](https://claude.com/claude-code), directed and tested by
+[Mayank13Jindal](https://github.com/Mayank13Jindal). It has automated tests
+and was reviewed, but it is a young project: check it before you trust it
+with important data.
 
 ## Project layout
 

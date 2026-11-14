@@ -1,3 +1,4 @@
+import hmac
 from collections.abc import Generator
 from datetime import UTC, datetime
 from typing import Annotated
@@ -42,8 +43,6 @@ def require_session(request: Request, db: DB) -> Session:
         raise HTTPException(401, "Please sign in.")
     if request.method not in ("GET", "HEAD", "OPTIONS"):
         same_origin(request)
-        import hmac
-
         csrf = request.headers.get("x-csrf-token", "")
         if not csrf or not hmac.compare_digest(digest(csrf), session.csrf_hash):
             raise HTTPException(403, "Reload the page and try again.")

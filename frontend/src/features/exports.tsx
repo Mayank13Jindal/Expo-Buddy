@@ -1,7 +1,7 @@
 import { formatTime } from '../app/time'
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { flexRender, getCoreRowModel, useReactTable, type ColumnDef } from '@tanstack/react-table'
+import { tableFeatures, useTable, type ColumnDef } from '@tanstack/react-table'
 import { useSearchParams } from 'react-router-dom'
 import { ArrowDown, ArrowUp, Download, Save } from 'lucide-react'
 import { api, send } from '../api/client'
@@ -43,20 +43,25 @@ const defaults: Selection = {
   include_vcard: false,
   info_sheet: true,
 }
+// The preview table only needs the core row model, so no optional table features.
+const previewFeatures = tableFeatures({})
+type PreviewRow = Record<string, string>
+const NO_ROWS: PreviewRow[] = []
+
 function PreviewTable({
   rows,
   fields,
   labels,
 }: {
-  rows: Record<string, string>[]
+  rows: PreviewRow[]
   fields: string[]
   labels: Record<string, string>
 }) {
-  const columns = useMemo<ColumnDef<Record<string, string>>[]>(
+  const columns = useMemo<ColumnDef<typeof previewFeatures, PreviewRow>[]>(
     () => fields.map((field) => ({ accessorKey: field, header: labels[field] ?? field })),
     [fields, labels],
   )
-  const table = useReactTable({ data: rows, columns, getCoreRowModel: getCoreRowModel() })
+  const table = useTable({ features: previewFeatures, columns, data: rows })
   return (
     <div className="table-scroll">
       <table>
@@ -65,7 +70,7 @@ function PreviewTable({
             <tr key={group.id}>
               {group.headers.map((header) => (
                 <th key={header.id}>
-                  {flexRender(header.column.columnDef.header, header.getContext())}
+                  {header.isPlaceholder ? null : <table.FlexRender header={header} />}
                 </th>
               ))}
             </tr>
@@ -74,8 +79,10 @@ function PreviewTable({
         <tbody>
           {table.getRowModel().rows.map((row) => (
             <tr key={row.id}>
-              {row.getVisibleCells().map((cell) => (
-                <td key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>
+              {row.getAllCells().map((cell) => (
+                <td key={cell.id}>
+                  <table.FlexRender cell={cell} />
+                </td>
               ))}
             </tr>
           ))}
@@ -407,7 +414,7 @@ export function ExportsPage() {
                       contains all selected rows.
                     </p>
                     <PreviewTable
-                      rows={preview.data?.rows?.[table] ?? []}
+                      rows={preview.data?.rows?.[table] ?? NO_ROWS}
                       fields={preview.data?.fields?.[table] ?? selection.fields[table]}
                       labels={fields.data?.[table] ?? {}}
                     />
