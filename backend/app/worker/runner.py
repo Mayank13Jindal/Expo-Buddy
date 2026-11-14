@@ -14,7 +14,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from app.core.config import Settings
-from app.core.logging import configure_logging
+from app.core.logging import configure_logging, error_type
 from app.core.storage import StorageGuard, configured_volumes
 from app.db.agent import AgentAudit
 from app.db.library import Document, now
@@ -94,8 +94,11 @@ def main() -> None:
                     # Own try: a cleanup failure must not stop job pickup below.
                     try:
                         maintain(engine, settings)
-                    except Exception:
-                        log.warning("maintenance_failed", extra={"event": "maintenance_failed"})
+                    except Exception as error:
+                        log.warning(
+                            "maintenance_failed",
+                            extra={"event": "maintenance_failed", "error_type": error_type(error)},
+                        )
                 for name, pool in pools.items():
                     with Session(engine, expire_on_commit=False) as db:
                         if name in active:
@@ -103,7 +106,15 @@ def main() -> None:
                             if future.done():
                                 try:
                                     future.result()
-                                except Exception:
+                                except Exception as error:
+                                    log.warning(
+                                        "job_process_failed",
+                                        extra={
+                                            "event": "job_process_failed",
+                                            "job_id": job_id,
+                                            "error_type": error_type(error),
+                                        },
+                                    )
                                     job = db.get(Job, job_id)
                                     if job and job.state == "running":
                                         fail_or_retry(
@@ -134,8 +145,11 @@ def main() -> None:
                                     }.get(job.kind, document.processing_state)
                                     db.commit()
                                 active[name] = (job.id, pool.submit(execute_job, job.id, worker_id))
-            except Exception:
-                log.warning("heartbeat_failed", extra={"event": "heartbeat_failed"})
+            except Exception as error:
+                log.warning(
+                    "heartbeat_failed",
+                    extra={"event": "heartbeat_failed", "error_type": error_type(error)},
+                )
             stop.wait(settings.worker_interval_seconds)
     finally:
         embedding_server.shutdown()

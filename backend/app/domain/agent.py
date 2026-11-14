@@ -1,5 +1,6 @@
+import asyncio
 import secrets
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
 from fastapi import HTTPException
@@ -48,7 +49,21 @@ def issue(db, name, scopes, expires_at=None):
     return row, secret
 
 
+CALLS_PER_MINUTE = 60
+QUEUE_MINUTES = 5  # Requests over the limit wait up to this many minutes for a free slot.
+MINUTE_FORMAT = "%Y-%m-%dT%H:%M"
+
+
 def validate(db, raw, *, rate_limit=False):
+    return validate_queued(db, raw, rate_limit=rate_limit)[0]
+
+
+def validate_queued(db, raw, *, rate_limit=False):
+    """Return the token and how many seconds the caller must wait for its rate-limit slot.
+
+    Each token gets 60 calls a minute. Extra calls are queued into later minutes instead of
+    being refused; only when the queue is more than five minutes deep is a call refused.
+    """
     row = (
         db.scalar(select(APIToken).where(APIToken.token_hash == digest(raw)).with_for_update())
         if raw and len(raw) < 256
@@ -56,17 +71,34 @@ def validate(db, raw, *, rate_limit=False):
     )
     if not row or row.revoked_at or (row.expires_at and aware(row.expires_at) <= now()):
         raise HTTPException(401, "This agent token is missing, expired or revoked.")
+    delay = 0.0
     if rate_limit:
-        minute = now().strftime("%Y-%m-%dT%H:%M")
-        if row.minute != minute:
-            row.minute, row.calls = minute, 0
-        if row.calls >= 60:
+        current = now()
+        minute_start = current.replace(second=0, microsecond=0)
+        try:
+            previous = datetime.strptime(row.minute, MINUTE_FORMAT).replace(tzinfo=UTC)
+            elapsed = max(0, int((minute_start - previous).total_seconds() // 60))
+        except (TypeError, ValueError):
+            elapsed = None
+        # Calls queued for later minutes carry over; used slots of past minutes do not.
+        pending = 0 if elapsed is None else max(0, row.calls - CALLS_PER_MINUTE * elapsed)
+        wait_minutes = pending // CALLS_PER_MINUTE
+        if wait_minutes > QUEUE_MINUTES:
             raise HTTPException(
-                429, "This agent has reached 60 requests this minute. Try again shortly."
+                429,
+                f"This agent has more than {QUEUE_MINUTES} minutes of queued requests. "
+                "Try again shortly.",
             )
-        row.calls += 1
+        row.minute, row.calls = minute_start.strftime(MINUTE_FORMAT), pending + 1
+        if wait_minutes:
+            slot = minute_start + timedelta(minutes=wait_minutes)
+            delay = max(0.0, (slot - current).total_seconds())
     row.last_used_at = now()
-    return row
+    return row, delay
+
+
+async def wait_for_slot(seconds: float) -> None:
+    await asyncio.sleep(seconds)
 
 
 def audit(db, token_id, tool, arguments, status):

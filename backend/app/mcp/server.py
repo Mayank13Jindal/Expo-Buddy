@@ -1,4 +1,6 @@
 import json
+import logging
+import time
 from contextvars import ContextVar
 from typing import Annotated, Any, Literal
 from uuid import UUID
@@ -14,8 +16,13 @@ from pydantic import Field
 from sqlalchemy.orm import Session
 from starlette.responses import JSONResponse
 
+from app.core.logging import error_type
 from app.db.agent import APIToken
 from app.domain import agent
+
+log = logging.getLogger("mcp")
+# Audit rows for rejected tokens are capped per minute so junk requests cannot grow the table.
+UNAUTHORIZED_AUDITS_PER_MINUTE = 10
 
 current_token: ContextVar[UUID | None] = ContextVar("expo_agent_token", default=None)
 Text = Annotated[str, Field(min_length=1, max_length=500)]
@@ -51,8 +58,12 @@ def create_mcp(settings, engine):
                 )
                 db.commit()
                 raise ToolError(error.detail) from None
-            except Exception:
+            except Exception as error:
                 db.rollback()
+                log.warning(
+                    "agent_tool_failed",
+                    extra={"event": "agent_tool_failed", "tool": tool, "error_type": error_type(error)},
+                )
                 agent.audit(db, token.id, tool, arguments, "failed")
                 db.commit()
                 raise ToolError(
@@ -251,17 +262,26 @@ def create_mcp(settings, engine):
 class BearerApp:
     def __init__(self, app, engine):
         self.app, self.engine = app, engine
+        self.unauthorized_minute, self.unauthorized_audits = 0, 0
+
+    def should_audit_rejection(self) -> bool:
+        minute = int(time.time() // 60)
+        if minute != self.unauthorized_minute:
+            self.unauthorized_minute, self.unauthorized_audits = minute, 0
+        self.unauthorized_audits += 1
+        return self.unauthorized_audits <= UNAUTHORIZED_AUDITS_PER_MINUTE
 
     def authenticate(self, raw):
         with Session(self.engine, expire_on_commit=False) as db:
             try:
-                token = agent.validate(db, raw, rate_limit=True)
-                agent.audit(db, token.id, "mcp_request", {}, "authenticated")
+                token, delay = agent.validate_queued(db, raw, rate_limit=True)
+                agent.audit(db, token.id, "mcp_request", {}, "queued" if delay else "authenticated")
                 db.commit()
-                return token.id, None
+                return token.id, delay, None
             except HTTPException as error:
                 db.rollback()
-                if raw:  # Token-less probes would grow the audit table without limit.
+                # Token-less probes are never audited; other rejections are capped per minute.
+                if raw and self.should_audit_rejection():
                     agent.audit(
                         db,
                         None,
@@ -270,7 +290,7 @@ class BearerApp:
                         "rate_limited" if error.status_code == 429 else "unauthorized",
                     )
                     db.commit()
-                return None, error
+                return None, 0.0, error
 
     async def __call__(self, scope, receive, send):
         if scope["type"] != "http":
@@ -279,7 +299,7 @@ class BearerApp:
         headers = dict(scope.get("headers", []))
         value = headers.get(b"authorization", b"").decode("latin-1")
         raw = value[7:] if value.startswith("Bearer ") else ""
-        token_id, error = await run_in_threadpool(self.authenticate, raw)
+        token_id, delay, error = await run_in_threadpool(self.authenticate, raw)
         if error:
             await JSONResponse(
                 {"detail": error.detail},
@@ -290,6 +310,9 @@ class BearerApp:
                 },
             )(scope, receive, send)
             return
+        if delay:
+            # Over the per-minute limit: wait for this request's reserved slot, then run it.
+            await agent.wait_for_slot(delay)
         scope["expo_agent_token_id"] = token_id
         reset = current_token.set(token_id)
         try:
