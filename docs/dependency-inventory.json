@@ -1,5 +1,5 @@
 {
-  "generated_on": "2026-10-29",
+  "generated_on": "2026-11-14",
   "description": "Installed worker and local development Python distributions, plus npm lockfile packages. Versions/hashes in lockfiles are authoritative; retain installed upstream notices.",
   "worker_python": [
     {
@@ -5042,6 +5042,13 @@
       "version": "8.5.32",
       "license": "MIT",
       "development": false,
+      "optional": false
+    },
+    {
+      "path": "node_modules/prettier",
+      "version": "3.10.1",
+      "license": "MIT",
+      "development": true,
       "optional": false
     },
     {

@@ -1,6 +1,6 @@
 # Open-source notices
 
-Dependency versions were pinned on 28 October 2026. The authoritative, complete version and hash records are `backend/requirements.lock`, `backend/requirements-worker.lock`, `backend/requirements-dev.lock`, `frontend/package-lock.json`, `models.lock.json` and image references in the Dockerfiles/Compose file. This inventory describes the main components; their installed distributions retain upstream copyright, licence and bundled-library notices. Preserve those notices when redistributing images. No upstream copyright ownership is claimed for this project.
+Dependency versions were pinned on 28 October 2026; Prettier was added on 14 November 2026. The authoritative, complete version and hash records are `backend/requirements.lock`, `backend/requirements-worker.lock`, `backend/requirements-dev.lock`, `frontend/package-lock.json`, `models.lock.json` and image references in the Dockerfiles/Compose file. This inventory describes the main components; their installed distributions retain upstream copyright, licence and bundled-library notices. Preserve those notices when redistributing images. No upstream copyright ownership is claimed for this project.
 
 ## Application dependencies
 
@@ -39,9 +39,10 @@ Dependency versions were pinned on 28 October 2026. The authoritative, complete 
 | PhotoSwipe | 5.4.4 | [MIT](https://github.com/dimsemenov/PhotoSwipe) |
 | Workbox | 7.4.1 | [MIT](https://github.com/GoogleChrome/workbox) |
 | Vite / vite-plugin-pwa | 8.3.5 / 2.0.0 | [MIT](https://github.com/vite-pwa/vite-plugin-pwa) |
+| Prettier (development) | 3.10.1 | [MIT](https://github.com/prettier/prettier) |
 | Tailwind CSS | 4.3.3 | [MIT](https://github.com/tailwindlabs/tailwindcss) |
 
-HTTP, validation, numerical and test dependencies are included in the lockfiles and [dependency inventory](dependency-inventory.json). Test/build tools include pytest, Ruff, Vitest, TypeScript, Playwright, fake-indexeddb and ReportLab. Browser binaries, Python/Node runtimes, Debian/Alpine packages and native libraries retain their own licences. Pillow's embedded default font and ReportLab's bundled fonts retain their distribution notices; fictional samples use these packaged fonts and generated artwork.
+HTTP, validation, numerical and test dependencies are included in the lockfiles and [dependency inventory](dependency-inventory.json). Test/build tools include Prettier, pytest, Ruff, Vitest, TypeScript, Playwright, fake-indexeddb and ReportLab. Browser binaries, Python/Node runtimes, Debian/Alpine packages and native libraries retain their own licences. Pillow's embedded default font and ReportLab's bundled fonts retain their distribution notices; fictional samples use these packaged fonts and generated artwork.
 
 ## Services and images
 
