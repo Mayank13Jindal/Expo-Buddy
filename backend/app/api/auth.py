@@ -8,6 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from app.api.dependencies import DB, OwnerSession, aware, same_origin
 from app.core.security import check_password, digest, hasher, random_token
 from app.db.library import Owner, Preference, Session
+from app.domain.providers import ensure_providers
 
 router = APIRouter(prefix="/api/v1/auth", tags=["account"])
 
@@ -53,8 +54,6 @@ def setup(body: Credentials, request: Request, response: Response, db: DB):
     try:
         db.flush()
         db.add(Preference(owner_id=owner.id))
-        from app.domain.providers import ensure_providers
-
         ensure_providers(db)
         return sign_in(owner, request, response, db)
     except IntegrityError:
@@ -73,8 +72,6 @@ def open_library(request: Request, response: Response, db: DB):
         db.add(owner)
         db.flush()
         db.add(Preference(owner_id=owner.id))
-        from app.domain.providers import ensure_providers
-
         ensure_providers(db)
     return sign_in(owner, request, response, db)
 
