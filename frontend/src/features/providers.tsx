@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Cloud, RefreshCw } from 'lucide-react'
 import { api, send } from '../api/client'
 import { useLibrary, useToast } from '../app/providers'
-import { Badge, Button, ErrorMessage, Field, Loading, Modal } from '../components/ui'
+import { Badge, Button, ErrorMessage, Field, Modal } from '../components/ui'
 
 type Model = { id: string; name: string; digest?: string }
 type Provider = {

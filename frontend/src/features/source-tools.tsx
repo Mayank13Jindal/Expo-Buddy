@@ -1,5 +1,5 @@
 import { useRef, useState, type FormEvent } from 'react'
-import { RotateCw, Crop, Replace, History } from 'lucide-react'
+import { RotateCw, Crop, Replace } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { api, send, type Document, type Page } from '../api/client'
 import { useLibrary, useToast } from '../app/providers'

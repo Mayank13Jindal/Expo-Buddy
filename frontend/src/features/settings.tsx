@@ -3,14 +3,14 @@ import { AccuracyPanel } from './accuracy'
 import { useState, type FormEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { LogOut, Settings, Activity, CalendarDays, Download } from 'lucide-react'
+import { LogOut, Activity, CalendarDays, Download } from 'lucide-react'
 import { api, ApiError, send } from '../api/client'
 import { BackupSettings } from './backups'
 import { AgentSettings } from './agent'
 import { ProviderSettings } from './providers'
-import type { Health } from '../health'
+import type {} from '../health'
 import { useLibrary, useToast } from '../app/providers'
-import { Badge, Button, ErrorMessage, Field, Loading } from '../components/ui'
+import { Badge, Button, ErrorMessage, Field } from '../components/ui'
 
 export function SettingsPage({
   onSignedOut,

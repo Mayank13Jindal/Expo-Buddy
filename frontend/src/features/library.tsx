@@ -19,7 +19,6 @@ import { api, send, type Document } from '../api/client'
 import { useLibrary, useToast } from '../app/providers'
 import { TrashActions } from './trash'
 import {
-  Badge,
   DocumentStatus,
   Button,
   Empty,
@@ -27,7 +26,6 @@ import {
   Field,
   Loading,
   Modal,
-  stateLabel,
 } from '../components/ui'
 
 export function LibraryPage() {

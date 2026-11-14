@@ -1,8 +1,8 @@
 import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { hashFile } from '../pwa/hash'
-import { CheckCircle2, FileImage, FolderUp, Camera, UploadCloud, RotateCw, X } from 'lucide-react'
-import { api, csrfToken, send } from '../api/client'
+import { CheckCircle2, FileImage, FolderUp, Camera, UploadCloud, RotateCw } from 'lucide-react'
+import { csrfToken, send } from '../api/client'
 import { useLibrary } from '../app/providers'
 import { Button, ErrorMessage } from '../components/ui'
 
@@ -36,7 +36,9 @@ export function uploadWithProgress(
         let message = 'Upload failed. Please retry.'
         try {
           message = JSON.parse(xhr.responseText).detail
-        } catch {}
+        } catch {
+          // Keep the generic message when the server did not send JSON.
+        }
         reject(new Error(message))
       }
     }

@@ -82,6 +82,7 @@ export async function api<T = unknown>(path: string, options: RequestInit = {}):
       error instanceof DOMException && error.name === 'TimeoutError'
         ? 'The library took too long to respond. Retry when the server is available.'
         : 'Cannot reach your library. Check the server connection, then retry.',
+      { cause: error },
     )
   }
   if (!response.ok) {

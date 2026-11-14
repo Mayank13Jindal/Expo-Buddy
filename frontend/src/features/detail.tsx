@@ -1,11 +1,11 @@
 import { CheckedExample } from './accuracy'
 import { AIReprocess, ProcessingProgress, FieldReview } from './ai-tools'
-import { formatTime, formatDate } from '../app/time'
+import { formatDate } from '../app/time'
 import { useEffect, useState, type FormEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, Download, FileText, StickyNote, Trash2, RotateCcw } from 'lucide-react'
-import { api, ApiError, send, type Document, type Note } from '../api/client'
+import { ArrowLeft, Download, StickyNote, Trash2 } from 'lucide-react'
+import { api, ApiError, send, type Document } from '../api/client'
 import { useLibrary, useToast } from '../app/providers'
 import { SourceTools } from './source-tools'
 import { SourceViewer } from './source-viewer'
@@ -24,7 +24,7 @@ import {
 
 export function DetailPage() {
   const { id } = useParams(),
-    { refresh, expos } = useLibrary(),
+    { refresh } = useLibrary(),
     toast = useToast(),
     navigate = useNavigate()
   const query = useQuery({
@@ -72,7 +72,9 @@ export function DetailPage() {
       )
     )
       box = value
-  } catch {}
+  } catch {
+    // Saved boxes are optional; ignore malformed ones.
+  }
   const saveNote = async (event: FormEvent) => {
     event.preventDefault()
     setBusy(true)

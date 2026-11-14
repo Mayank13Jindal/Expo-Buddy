@@ -3,7 +3,6 @@ import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom'
 import {
   Home,
   LibraryBig,
-  Plus,
   ScanLine,
   ClipboardCheck,
   Settings,
@@ -24,7 +23,6 @@ import { AppUpdateHint } from '../pwa/update'
 import { CommandPalette } from './command-palette'
 import { useLibrary, useToast } from './providers'
 import { isServerReachable, send } from '../api/client'
-import { Button } from '../components/ui'
 
 const links = [
   { to: '/', label: 'Overview', icon: Home },

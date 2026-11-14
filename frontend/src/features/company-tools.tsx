@@ -1,7 +1,7 @@
 import { LibraryTabs } from './library-tabs'
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { Building2, Plus, Search, StickyNote } from 'lucide-react'
 import { api, send, type Note } from '../api/client'
 import { useLibrary, useToast } from '../app/providers'

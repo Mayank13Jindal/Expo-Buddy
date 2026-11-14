@@ -1,15 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import {
-  Camera,
-  Images,
-  Plus,
-  RefreshCw,
-  StickyNote,
-  Check,
-  Trash2,
-  UploadCloud,
-} from 'lucide-react'
+import { Camera, Images, Plus, RefreshCw, StickyNote, Check, Trash2 } from 'lucide-react'
 import { useLibrary, useToast } from '../app/providers'
 import { Badge, Button, ErrorMessage, Field, Modal } from '../components/ui'
 import { useCaptures } from '../pwa/hooks'
@@ -23,7 +14,6 @@ import {
   removeCapture,
   setMeta,
   updateCapture,
-  type Capture,
 } from '../pwa/queue'
 import { syncQueue } from '../pwa/sync'
 
@@ -143,8 +133,7 @@ export function CapturePage() {
     void syncQueue()
   }
   const pending = items.filter((item) => item.state !== 'saved'),
-    files = items.filter((item) => item.kind === 'file'),
-    notes = items.filter((item) => item.kind === 'note' && !item.deleted)
+    files = items.filter((item) => item.kind === 'file')
   const run = (task: Promise<unknown>) => {
     void task.catch(setError)
   }

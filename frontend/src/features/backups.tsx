@@ -1,5 +1,5 @@
 import { QueryStatus } from '../components/ui/query-status'
-import { formatTime, formatDate } from '../app/time'
+import { formatTime } from '../app/time'
 import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { HardDrive, Save } from 'lucide-react'

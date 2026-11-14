@@ -1,4 +1,4 @@
-import { formatTime, formatDate } from '../app/time'
+import { formatDate } from '../app/time'
 import { useState, type FormEvent } from 'react'
 import { CalendarDays, MapPin, Plus, Check } from 'lucide-react'
 import { send } from '../api/client'
