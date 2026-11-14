@@ -45,6 +45,8 @@ Steps:
 2. Check Docker Engine and "docker compose version" work without sudo. If Docker is
    missing, install it with the official script (get.docker.com) and add me to the
    docker group. Then tell me to log out and log back in, and wait for me.
+   If you added me to the docker group, I will log out, log back in, open you
+   again and paste this prompt again. Then skip the steps that are already done.
 3. Clone the repo and cd into it.
 4. Run ./scripts/docker.sh setup
 5. Run ./scripts/docker.sh models and then ./scripts/docker.sh models --kind embeddings.
@@ -53,7 +55,8 @@ Steps:
    services healthy. If something fails, read docker compose logs --tail=100 and fix it.
 7. Trust the HTTPS certificate at
    .secrets/caddy-data/caddy/pki/authorities/local/root.crt in the system store.
-8. Confirm https://localhost:8443 responds, and tell me to open it and create my password.
+8. If I use Chrome or Chromium, install libnss3-tools and run ./scripts/trust-local-ca.sh.
+9. Confirm https://localhost:8443 responds. Tell me to open it and create my password.
 
 Rules:
 - Never run ./scripts/docker.sh with sudo.
@@ -81,7 +84,7 @@ curl -fsSL https://get.docker.com | sh
 sudo usermod -aG docker "$USER"
 ```
 
-Log out and log back in before continuing, so Docker works without `sudo`.
+**Log out and log back in before step 2**, so Docker works without `sudo`.
 
 #### 2. Get the code
 
@@ -129,9 +132,19 @@ sudo update-ca-certificates
 ```
 
 Open **https://localhost:8443**. If the browser still warns about the certificate,
-fully restart it. Chrome/Chromium may also need `./scripts/trust-local-ca.sh`
-with `certutil` installed. Trust only the public `root.crt`; never share its
-private key or disable certificate verification.
+fully restart it. For Chrome/Chromium, also run:
+
+```sh
+sudo apt install -y libnss3-tools
+./scripts/trust-local-ca.sh
+```
+
+Firefox keeps its own list. Open **Settings > Privacy & Security > Certificates >
+View Certificates > Authorities > Import**, pick `root.crt`, and tick
+**Trust this CA to identify websites**.
+
+Trust only the public `root.crt`; never share its private key or disable
+certificate verification.
 
 ### Password and phone access
 
@@ -140,6 +153,14 @@ setup binds to this computer. To turn the password off, change `PASSWORDLESS=fal
 to `PASSWORDLESS=true` in `.env` and run `docker compose up -d --wait`. Only do that
 on a computer nobody else can reach. Anyone who can reach password-free mode has
 full access, including settings.
+
+If you forget your password, run:
+
+```sh
+docker compose exec api python -m app.core.reset_password
+```
+
+This only works after the account exists (after first sign-in).
 
 See [HTTPS and phone setup](docs/setup.md#https-and-phone-access). Provider sign-in
 is separate, and cloud processing starts off.
