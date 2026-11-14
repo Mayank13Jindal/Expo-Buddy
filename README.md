@@ -2,6 +2,8 @@
 
 ![Expo Buddy — turn expo discoveries into organized contacts](docs/images/banner.png)
 
+![Vibe coded with Codex and Claude Code](https://img.shields.io/badge/vibe%20coded%20with-Codex%20%26%20Claude%20Code-8A2BE2)
+
 A self-hosted home for the people, companies and ideas you collect at expos.
 Scan visiting cards and brochures, check extracted details beside the originals,
 keep private notes, and export the contacts you want to follow up with.
@@ -168,6 +170,15 @@ docker compose up -d --wait       # start again
 [.env.example](.env.example) documents configuration; setup generates the actual
 values and secrets. [Recovery instructions](docs/backup-restore.md) explain how to
 restore into a new database before cutover.
+
+## How this was built
+
+Expo Buddy is vibe coded. The code was written with AI coding agents,
+[OpenAI Codex](https://openai.com/codex/) and
+[Claude Code](https://claude.com/claude-code), directed and tested by
+[Mayank13Jindal](https://github.com/Mayank13Jindal). It has automated tests
+and was reviewed, but it is a young project: check it before you trust it
+with important data.
 
 ## Project layout
 
