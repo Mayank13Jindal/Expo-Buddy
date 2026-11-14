@@ -8,7 +8,9 @@ async function open(page: import('@playwright/test').Page, path: string) {
   await page.goto(path)
 }
 
-test('settings panels save preferences and backups, and reject an invalid ChatGPT import', async ({ page }) => {
+test('settings panels save preferences and backups, and reject an invalid ChatGPT import', async ({
+  page,
+}) => {
   await open(page, '/settings')
   await page.getByLabel('Colour theme', { exact: true }).selectOption('dark')
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
@@ -27,7 +29,11 @@ test('settings panels save preferences and backups, and reject an invalid ChatGP
   await expect(page.getByRole('status')).toContainText('Backup queued')
   await page.getByRole('button', { name: 'Connect from another PC', exact: true }).click()
   const dialog = page.getByRole('dialog')
-  await dialog.getByLabel('Import protected connection file').setInputFiles({ name: 'invalid.expo', mimeType: 'application/json', buffer: Buffer.from('{}') })
+  await dialog.getByLabel('Import protected connection file').setInputFiles({
+    name: 'invalid.expo',
+    mimeType: 'application/json',
+    buffer: Buffer.from('{}'),
+  })
   await expect(page.getByRole('alert')).toContainText('Check the form and try again')
   await dialog.getByRole('button', { name: 'Close', exact: true }).click()
   await page.reload()
@@ -36,12 +42,26 @@ test('settings panels save preferences and backups, and reject an invalid ChatGP
   await expect(page.getByLabel('Phone number region hint')).toHaveValue('IN')
 })
 
-test('all main panels render, filters open, and source controls preserve the original', async ({ page }) => {
+test('all main panels render, filters open, and source controls preserve the original', async ({
+  page,
+}) => {
   await open(page, '/library')
-  for (const path of ['/health', '/review', '/grouping', '/expos', '/library/people', '/library/companies', '/exports', '/upload', '/capture']) {
+  for (const path of [
+    '/health',
+    '/review',
+    '/grouping',
+    '/expos',
+    '/library/people',
+    '/library/companies',
+    '/exports',
+    '/upload',
+    '/capture',
+  ]) {
     await page.goto(path)
     await expect(page.locator('main h1')).toBeVisible()
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy()
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+    ).toBeTruthy()
   }
   await page.goto('/library')
   await page.getByRole('button', { name: 'List view' }).click()
@@ -57,7 +77,7 @@ test('all main panels render, filters open, and source controls preserve the ori
   await page.getByRole('button', { name: 'Crop', exact: true }).click()
   await expect(page.getByRole('dialog')).toHaveAccessibleName('Choose the area to read')
   await page.getByRole('button', { name: 'Cancel', exact: true }).click()
-  const rotation = page.waitForResponse(response => response.url().endsWith('/rotate'))
+  const rotation = page.waitForResponse((response) => response.url().endsWith('/rotate'))
   await page.getByRole('button', { name: 'Rotate', exact: true }).click()
   expect((await rotation).status()).toBe(200)
   await page.getByText('Source history', { exact: true }).click()
@@ -75,7 +95,10 @@ test('all main panels render, filters open, and source controls preserve the ori
   await page.getByRole('button', { name: 'Trash', exact: true }).click()
   await page.getByRole('button', { name: 'Move to Trash', exact: true }).click()
   await page.getByRole('button', { name: 'Trash', exact: true }).click()
-  await page.getByRole('button', { name: 'Remove originals permanently', exact: true }).first().click()
+  await page
+    .getByRole('button', { name: 'Remove originals permanently', exact: true })
+    .first()
+    .click()
   await expect(page.getByRole('dialog')).toHaveAccessibleName('Remove original files permanently?')
   await page.getByRole('button', { name: 'Keep files', exact: true }).click()
   await page.getByRole('button', { name: 'Restore', exact: true }).first().click()
