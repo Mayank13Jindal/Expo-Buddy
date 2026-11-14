@@ -6,6 +6,8 @@ vi.mock('../src/api/client', () => ({ api: vi.fn(), send: vi.fn() }))
 import { api, send } from '../src/api/client'
 import { syncQueue } from '../src/pwa/sync'
 
+type NoteBody = { text_value: string; revision: number; deleted?: boolean }
+
 beforeEach(async () => {
   vi.resetAllMocks()
   const db = await database()
@@ -40,7 +42,8 @@ test('captured expo stays fixed; a lost acknowledgement keeps the blob until ret
     vi
       .mocked(send)
       .mock.calls.some(
-        ([path, body]) => path === '/sync/files' && (body as any).expo_id === 'expo-one',
+        ([path, body]) =>
+          path === '/sync/files' && (body as { expo_id?: string }).expo_id === 'expo-one',
       ),
   ).toBe(true)
   expect(saved.id).toBe(queued.id)
@@ -70,8 +73,8 @@ test('an edit during note sync stays pending and the next revision is sent', asy
       .mock.calls.some(
         ([path, body]) =>
           path === '/sync/notes' &&
-          (body as any).text_value === 'latest' &&
-          (body as any).revision === 2,
+          (body as NoteBody).text_value === 'latest' &&
+          (body as NoteBody).revision === 2,
       ),
   ).toBe(true)
 })
@@ -95,7 +98,9 @@ test('a note deleted before sync is never sent; deleting an attempted note sends
   vi.mocked(api).mockResolvedValue({})
   vi.mocked(send).mockResolvedValue({ id: 'server-note' })
   await syncQueue()
-  const request = vi.mocked(send).mock.calls.find(([path]) => path === '/sync/notes')?.[1] as any
+  const request = vi
+    .mocked(send)
+    .mock.calls.find(([path]) => path === '/sync/notes')?.[1] as NoteBody
   expect(request.deleted).toBe(true)
   expect(request.text_value).toBe('')
   expect(request.revision).toBe(2)

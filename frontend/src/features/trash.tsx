@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { api, send } from '../api/client'
 import { useLibrary, useToast } from '../app/providers'
 import { Button, ErrorMessage, Field, Modal } from '../components/ui'
+import type { RemovalPreview } from '../api/types'
 export function TrashActions({ id }: { id: string }) {
   const { refresh } = useLibrary(),
     toast = useToast(),
@@ -12,7 +13,7 @@ export function TrashActions({ id }: { id: string }) {
   const preview = useQuery({
     queryKey: ['removal-preview', id],
     enabled: open,
-    queryFn: () => api<any>(`/documents/${id}/permanent-removal`),
+    queryFn: () => api<RemovalPreview>(`/documents/${id}/permanent-removal`),
   })
   return (
     <>
@@ -51,10 +52,10 @@ export function TrashActions({ id }: { id: string }) {
           {preview.data?.files ?? '…'} files · {((preview.data?.bytes ?? 0) / 1024 ** 2).toFixed(1)}{' '}
           MB. Backups and existing exports can still contain copies.
         </p>
-        {preview.data?.blocked_file_ids?.length > 0 && (
+        {(preview.data?.blocked_file_ids.length ?? 0) > 0 && (
           <p className="error">
-            Blocked: {preview.data.blocked_file_ids.length} files are used by another active record.
-            Those originals must be kept.
+            Blocked: {preview.data?.blocked_file_ids.length} files are used by another active
+            record. Those originals must be kept.
           </p>
         )}
         {preview.data?.files === 0 && (

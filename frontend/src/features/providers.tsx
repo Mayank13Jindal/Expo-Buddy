@@ -81,7 +81,7 @@ export function ProviderSettings() {
       setAuthorizationUrl('')
       setError(new Error(signIn.data.message || 'The sign-in session ended. Start a new attempt.'))
     }
-  }, [signingIn, signIn.data])
+  }, [signingIn, signIn.data, refresh, toast])
   const startSignIn = async (newAccount = false) => {
     const popup = window.open('about:blank', '_blank')
     setBusy(true)

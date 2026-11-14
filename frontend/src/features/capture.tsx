@@ -61,19 +61,16 @@ export function CapturePage() {
         )
     })
   }, [])
+  const activeExpoId = activeExpo?.id,
+    activeExpoUuid = activeExpo?.client_uuid
   useEffect(() => {
     const group = items.find((item) => item.id === booth)
-    if (
-      group &&
-      activeExpo &&
-      group.expoId !== activeExpo.id &&
-      group.expoId !== activeExpo.client_uuid
-    ) {
+    if (group && activeExpoId && group.expoId !== activeExpoId && group.expoId !== activeExpoUuid) {
       setBooth('')
       creatingBooth.current = null
       void setMeta('booth', '')
     }
-  }, [activeExpo?.id, activeExpo?.client_uuid, items, booth])
+  }, [activeExpoId, activeExpoUuid, items, booth])
   const makeBooth = () => {
     const task = (async () => {
       if (!activeExpo) return

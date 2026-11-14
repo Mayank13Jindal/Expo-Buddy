@@ -126,6 +126,9 @@ export function LibraryPage() {
           processing_state: string
           type: string
           provisional: boolean
+          review_state?: string | null
+          review_status?: string
+          pending_changes?: number
         }[]
       }>(
         `/search?${new URLSearchParams({ q: term, include_related: String(related), scope: all ? 'all' : 'active', ...filters, ...(activeExpo && !all ? { expo_id: activeExpo.id } : {}), ...(type ? { type } : {}) })}`,
@@ -143,9 +146,9 @@ export function LibraryPage() {
           group_state: hit.provisional ? 'suggested' : 'confirmed',
           processing_state: hit.processing_state ?? 'ready',
           match_kind: hit.match_kind,
-          review_state: (hit as any).review_state ?? 'unreviewed',
-          review_status: (hit as any).review_status,
-          pending_changes: (hit as any).pending_changes,
+          review_state: hit.review_state ?? 'unreviewed',
+          review_status: hit.review_status,
+          pending_changes: hit.pending_changes,
           review_reasons: [],
           created_at: '',
           snippet: hit.snippet,

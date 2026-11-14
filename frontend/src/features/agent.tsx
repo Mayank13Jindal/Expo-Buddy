@@ -5,17 +5,18 @@ import { KeyRound, Plus, Shield, Trash2 } from 'lucide-react'
 import { api, send } from '../api/client'
 import { useLibrary, useToast } from '../app/providers'
 import { Badge, Button, ErrorMessage, Field, Modal } from '../components/ui'
+import type { AgentActivity, AgentToken } from '../api/types'
 
 export function AgentSettings() {
   const { refresh } = useLibrary(),
     toast = useToast()
   const tokens = useQuery({
     queryKey: ['agent-tokens'],
-    queryFn: () => api<any[]>('/settings/agent-tokens'),
+    queryFn: () => api<AgentToken[]>('/settings/agent-tokens'),
   })
   const activity = useQuery({
     queryKey: ['agent-activity'],
-    queryFn: () => api<any[]>('/settings/agent-activity'),
+    queryFn: () => api<AgentActivity[]>('/settings/agent-activity'),
     refetchInterval: 10000,
   })
   const [open, setOpen] = useState(false),

@@ -1,3 +1,5 @@
+import type { DashboardProvider, PhoneQueueReport } from './types'
+
 export class ApiError extends Error {
   constructor(
     public status: number,
@@ -175,6 +177,12 @@ export interface Document {
   pages?: Page[]
   notes?: Note[]
   deleted_at?: string
+  processing_options?: {
+    instructions?: string
+    image_check?: boolean
+    auto_crop?: boolean
+    auto_process?: boolean
+  }
 }
 export interface Dashboard {
   documents: number
@@ -190,6 +198,6 @@ export interface Dashboard {
   review: number
   processing: Record<string, number>
   recent: Document[]
-  providers: { provider: string; state: string }[]
-  phone_queue: any[]
+  providers: DashboardProvider[]
+  phone_queue: PhoneQueueReport[]
 }

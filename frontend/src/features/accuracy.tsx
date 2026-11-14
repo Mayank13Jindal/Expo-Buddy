@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { api, send } from '../api/client'
 import { useLibrary, useToast } from '../app/providers'
 import { Button, ErrorMessage, Modal } from '../components/ui'
+import type { AccuracyReport } from '../api/types'
 
 export function CheckedExample({ id, reviewed }: { id: string; reviewed: boolean }) {
   const [open, setOpen] = useState(false),
@@ -61,7 +62,10 @@ export function CheckedExample({ id, reviewed }: { id: string; reviewed: boolean
   )
 }
 export function AccuracyPanel() {
-  const query = useQuery({ queryKey: ['accuracy'], queryFn: () => api<any>('/accuracy') })
+  const query = useQuery({
+    queryKey: ['accuracy'],
+    queryFn: () => api<AccuracyReport>('/accuracy'),
+  })
   return (
     <section className="panel">
       <h2>Accuracy on your checked cards</h2>
@@ -75,7 +79,7 @@ export function AccuracyPanel() {
               : 'No measured accuracy yet'}
           </p>
           <p className="caption">{query.data.policy}</p>
-          {query.data.examples.map((row: any) => (
+          {query.data.examples.map((row) => (
             <div className="history-row" key={row.document_id}>
               <Link to={`/documents/${row.document_id}`}>{row.title}</Link>
               <p>

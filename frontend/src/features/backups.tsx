@@ -6,23 +6,24 @@ import { HardDrive, Save } from 'lucide-react'
 import { api, send } from '../api/client'
 import { useLibrary, useToast } from '../app/providers'
 import { Badge, Button, ErrorMessage, Field } from '../components/ui'
+import type { BackupRecord, BackupSettings, SystemStatus } from '../api/types'
 export function BackupSettings() {
   const { refresh } = useLibrary(),
     toast = useToast()
   const config = useQuery({
     queryKey: ['backup-settings'],
-    queryFn: () => api<any>('/system/backup-settings'),
+    queryFn: () => api<BackupSettings>('/system/backup-settings'),
   })
   const system = useQuery({
     queryKey: ['system-status'],
-    queryFn: () => api<any>('/system/status'),
+    queryFn: () => api<SystemStatus>('/system/status'),
   })
   const history = useQuery({
     queryKey: ['backups'],
-    queryFn: () => api<any[]>('/system/backups'),
+    queryFn: () => api<BackupRecord[]>('/system/backups'),
     refetchInterval: 10000,
   })
-  const [form, setForm] = useState<any>({
+  const [form, setForm] = useState<BackupSettings>({
       enabled: true,
       hour: 2,
       minute: 0,

@@ -4,8 +4,11 @@ import { Link } from 'react-router-dom'
 import { api, send } from '../api/client'
 import { useLibrary, useToast } from '../app/providers'
 import { Button, ErrorMessage, Field, Modal } from '../components/ui'
+import type { Document } from '../api/client'
+import type { DocumentProgress } from '../api/types'
+import type { Company, Contact } from './company'
 
-export function AIReprocess({ document }: { document: any }) {
+export function AIReprocess({ document }: { document: Document }) {
   const [open, setOpen] = useState(false),
     [instructions, setInstructions] = useState(document.processing_options?.instructions ?? ''),
     [vision, setVision] = useState(document.processing_options?.image_check ?? false),
@@ -116,12 +119,12 @@ export function ProcessingProgress({ id, state }: { id: string; state: string })
     toast = useToast()
   const query = useQuery({
     queryKey: ['document-progress', id],
-    queryFn: () => api<any>(`/documents/${id}/progress`),
+    queryFn: () => api<DocumentProgress>(`/documents/${id}/progress`),
     refetchInterval: 3000,
   })
   const steps = query.data?.steps ?? []
   const finished = ['ready', 'indexing', 'needs_review', 'failed'].includes(state)
-  const current = steps.find((row: any) =>
+  const current = steps.find((row) =>
     ['failed', 'needs_review', 'waiting', 'running'].includes(row.state),
   )
   return (
@@ -132,10 +135,10 @@ export function ProcessingProgress({ id, state }: { id: string; state: string })
           ['prepare', 'Prepare photo'],
           ['read', 'OCR'],
           ['ai', 'AI'],
-          ...(steps.some((row: any) => row.step === 'vision') ? [['vision', 'Image check']] : []),
+          ...(steps.some((row) => row.step === 'vision') ? [['vision', 'Image check']] : []),
           ['review', 'Review'],
         ].map(([key, label]) => {
-          const item = steps.find((row: any) => row.step === key)
+          const item = steps.find((row) => row.step === key)
           return (
             <li
               key={key}
@@ -187,7 +190,7 @@ export function FieldReview({ companyId, documentId }: { companyId: string; docu
     toast = useToast()
   const query = useQuery({
     queryKey: ['field-review', companyId],
-    queryFn: () => api<any>(`/companies/${companyId}`),
+    queryFn: () => api<Company>(`/companies/${companyId}`),
   })
   const company = query.data
   const save = (kind: string, id: string, field: string, value: unknown) => {
@@ -215,9 +218,9 @@ export function FieldReview({ companyId, documentId }: { companyId: string; docu
         />
       </Field>
       {company.field_sources
-        ?.filter((field: any) => field.field === 'display_name')
-        .flatMap((field: any) => field.evidence ?? [])
-        .map((evidence: any, index: number) => (
+        ?.filter((field) => field.field === 'display_name')
+        .flatMap((field) => field.evidence ?? [])
+        .map((evidence, index) => (
           <Link
             className="field-evidence"
             key={index}
@@ -226,72 +229,75 @@ export function FieldReview({ companyId, documentId }: { companyId: string; docu
             “{evidence.quote}” · source ↗
           </Link>
         ))}
-      {[company, ...company.contacts].map((record: any) => (
-        <div className="field-review-record" key={record.id}>
-          {record.full_name !== undefined && (
-            <Field label="Person name">
-              <input
-                key={record.full_name}
-                defaultValue={record.full_name}
-                maxLength={300}
-                onBlur={(event) => {
-                  if (event.target.value !== record.full_name)
-                    save('contacts', record.id, 'full_name', event.target.value)
-                }}
-              />
-            </Field>
-          )}
-          {record.review_warning && <p className="notice">{record.review_warning}</p>}
-          {record.channels.map((channel: any, index: number) => (
-            <div key={`${index}-${channel.raw}`}>
-              <Field
-                label={`${record.full_name ? record.full_name + ' · ' : ''}${channel.label || channel.kind}`}
-              >
-                {channel.kind === 'address' ? (
-                  <textarea
-                    rows={3}
-                    defaultValue={channel.raw}
-                    onBlur={(event) => {
-                      if (event.target.value !== channel.raw)
-                        save(
-                          record.id === company.id ? 'companies' : 'contacts',
-                          record.id,
-                          'channels',
-                          record.channels.map((row: any, i: number) =>
-                            i === index ? { ...row, raw: event.target.value } : row,
-                          ),
-                        )
-                    }}
-                  />
-                ) : (
-                  <input
-                    defaultValue={channel.raw}
-                    onBlur={(event) => {
-                      if (event.target.value !== channel.raw)
-                        save(
-                          record.id === company.id ? 'companies' : 'contacts',
-                          record.id,
-                          'channels',
-                          record.channels.map((row: any, i: number) =>
-                            i === index ? { ...row, raw: event.target.value } : row,
-                          ),
-                        )
-                    }}
-                  />
-                )}
+      {[company, ...company.contacts].map((record: Company | Contact) => {
+        const personName = 'full_name' in record ? record.full_name : undefined
+        return (
+          <div className="field-review-record" key={record.id}>
+            {personName !== undefined && (
+              <Field label="Person name">
+                <input
+                  key={personName}
+                  defaultValue={personName}
+                  maxLength={300}
+                  onBlur={(event) => {
+                    if (event.target.value !== personName)
+                      save('contacts', record.id, 'full_name', event.target.value)
+                  }}
+                />
               </Field>
-              {channel.evidence?.quote && (
-                <Link
-                  className="field-evidence"
-                  to={`/documents/${documentId}?page=${channel.evidence.page_id}`}
+            )}
+            {record.review_warning && <p className="notice">{record.review_warning}</p>}
+            {record.channels.map((channel, index) => (
+              <div key={`${index}-${channel.raw}`}>
+                <Field
+                  label={`${personName ? personName + ' · ' : ''}${channel.label || channel.kind}`}
                 >
-                  “{channel.evidence.quote}” · source ↗
-                </Link>
-              )}
-            </div>
-          ))}
-        </div>
-      ))}
+                  {channel.kind === 'address' ? (
+                    <textarea
+                      rows={3}
+                      defaultValue={channel.raw}
+                      onBlur={(event) => {
+                        if (event.target.value !== channel.raw)
+                          save(
+                            record.id === company.id ? 'companies' : 'contacts',
+                            record.id,
+                            'channels',
+                            record.channels.map((row, i) =>
+                              i === index ? { ...row, raw: event.target.value } : row,
+                            ),
+                          )
+                      }}
+                    />
+                  ) : (
+                    <input
+                      defaultValue={channel.raw}
+                      onBlur={(event) => {
+                        if (event.target.value !== channel.raw)
+                          save(
+                            record.id === company.id ? 'companies' : 'contacts',
+                            record.id,
+                            'channels',
+                            record.channels.map((row, i) =>
+                              i === index ? { ...row, raw: event.target.value } : row,
+                            ),
+                          )
+                      }}
+                    />
+                  )}
+                </Field>
+                {channel.evidence?.quote && (
+                  <Link
+                    className="field-evidence"
+                    to={`/documents/${documentId}?page=${channel.evidence.page_id}`}
+                  >
+                    “{channel.evidence.quote}” · source ↗
+                  </Link>
+                )}
+              </div>
+            ))}
+          </div>
+        )
+      })}
     </section>
   )
 }

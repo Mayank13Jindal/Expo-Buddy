@@ -34,7 +34,7 @@ test('simple capture, visible directories/export, reprocessing and ChatGPT conne
       await fetch('/api/v1/documents?expo_id=' + preference.active_expo_id)
     ).json()
     return docs.find(
-      (row: any) =>
+      (row: { processing_options?: { instructions?: string } }) =>
         row.processing_options?.instructions ===
         'FICTIONAL simple capture note: check the company logo',
     ).id as string

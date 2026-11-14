@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { meta, setMeta, type CachedExpo } from '../pwa/queue'
 import { useCaptureSync } from '../pwa/hooks'
 import { api, send, type Expo, type Preferences } from '../api/client'
+import type { SystemStatus } from '../api/types'
 
 const LibraryContext = createContext<{
   expos: Expo[]
@@ -24,7 +25,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   const [, timezoneChanged] = useState(0)
   const system = useQuery({
     queryKey: ['system-status'],
-    queryFn: () => api<any>('/system/status'),
+    queryFn: () => api<SystemStatus>('/system/status'),
   })
   useEffect(() => {
     const zone = system.data?.timezone

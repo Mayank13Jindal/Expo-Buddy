@@ -15,8 +15,10 @@ test('review individual contact changes beside source, guard exports, show statu
   const fixture = await page.evaluate(async (mode) => {
     const expos = await (await fetch('/api/v1/expos')).json()
     return expos
-      .filter((row: any) => row.name.startsWith('SYNTHETIC Review ' + mode + ' '))
-      .sort((a: any, b: any) => b.created_at.localeCompare(a.created_at))[0] as {
+      .filter((row: { name: string }) => row.name.startsWith('SYNTHETIC Review ' + mode + ' '))
+      .sort((a: { created_at: string }, b: { created_at: string }) =>
+        b.created_at.localeCompare(a.created_at),
+      )[0] as {
       id: string
       name: string
     }

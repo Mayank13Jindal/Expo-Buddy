@@ -6,6 +6,7 @@ import { api } from '../api/client'
 import { useLibrary } from '../app/providers'
 import { Badge, Empty, ErrorMessage, Loading } from '../components/ui'
 import { LibraryTabs } from './library-tabs'
+import type { ContactRow } from '../api/types'
 
 export function PeoplePage() {
   const { activeExpo } = useLibrary(),
@@ -13,7 +14,8 @@ export function PeoplePage() {
     [q, setQ] = useState('')
   const query = useQuery({
     queryKey: ['people', all, activeExpo?.id],
-    queryFn: () => api<any[]>(`/contacts${!all && activeExpo ? `?expo_id=${activeExpo.id}` : ''}`),
+    queryFn: () =>
+      api<ContactRow[]>(`/contacts${!all && activeExpo ? `?expo_id=${activeExpo.id}` : ''}`),
   })
   const rows = query.data?.filter((row) =>
     JSON.stringify([row.full_name, row.company_name, row.designation, row.channels])
@@ -66,7 +68,7 @@ export function PeoplePage() {
                   {row.review_warning}
                 </p>
               )}
-              {row.channels.map((item: any, index: number) => (
+              {row.channels.map((item, index) => (
                 <p className="contact-value" key={index}>
                   <small>{item.label || item.kind}</small>
                   <span>{item.raw}</span>
