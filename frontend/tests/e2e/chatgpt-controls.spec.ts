@@ -11,7 +11,7 @@ test('ChatGPT login, logout and processing status stay distinct', async ({ page,
     const response = await route.fetch()
     const data = await response.json()
     data.cloud_fallback = false
-    const chatgpt = data.providers.find((row: any) => row.provider === 'chatgpt')
+    const chatgpt = data.providers.find((row: { provider: string }) => row.provider === 'chatgpt')
     Object.assign(chatgpt, {
       enabled: connected,
       state: 'off',

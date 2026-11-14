@@ -24,12 +24,28 @@ def write_private(path: Path, content: str, uid: int, gid: int) -> None:
         os.chown(path, uid, gid)
 
 
+def ask_for_password() -> bool:
+    """Ask whether the app should require a password. Defaults to yes."""
+    print("Ask for a password when the app opens? Recommended.")
+    print("Without one, anyone who can reach the app has full access to your data.")
+    while True:
+        answer = input("Use a password? [Y/n]: ").strip().lower()
+        if answer in ("", "y", "yes"):
+            return True
+        if answer in ("n", "no"):
+            return False
+        print("Please answer y or n.")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--local", "--development", dest="development", action="store_true", help="Single-host storage with a loopback-only gateway")
     parser.add_argument("--data-root", type=Path)
     parser.add_argument("--config", type=Path, help="See deploy/storage.example.json")
     parser.add_argument("--project", type=Path, default=Path(__file__).resolve().parents[1])
+    password = parser.add_mutually_exclusive_group()
+    password.add_argument("--password", dest="password", action="store_true", default=None, help="Ask for a password when the app opens (default)")
+    password.add_argument("--no-password", dest="password", action="store_false", help="Open the app without a password; keep it on this computer only")
     args = parser.parse_args()
     project = args.project.resolve()
     env_path = project / ".env"
@@ -39,7 +55,7 @@ def main() -> int:
     if not args.development and not args.config:
         parser.error("Use --config for custom storage, or --local for single-host storage")
     config = json.loads(args.config.read_text()) if args.config else {}
-    if not isinstance(config.get("passwordless", True), bool):
+    if not isinstance(config.get("passwordless", False), bool):
         parser.error("passwordless must be true or false")
     uid, gid = int(config.get("uid", os.getuid())), int(config.get("gid", os.getgid()))
     if uid == 0 or gid == 0:
@@ -80,6 +96,15 @@ def main() -> int:
             parser.error(f"Use a real directory for {name}")
         if path.exists() and any(path.iterdir()) and not (path / MARKER).is_file():
             parser.error(f"Refusing to initialise a nonempty unmarked folder: {name}")
+    # Ask only after every check passes, just before anything is written.
+    if args.password is not None:
+        passwordless = not args.password
+    elif "passwordless" in config:
+        passwordless = config["passwordless"]
+    elif sys.stdin.isatty():
+        passwordless = not ask_for_password()
+    else:
+        passwordless = False  # No one to ask: choose the safe default.
     for path in paths.values():
         path.mkdir(parents=True, exist_ok=True, mode=0o750)
         if os.getuid() == 0:
@@ -116,7 +141,7 @@ def main() -> int:
     values = {
         "APP_URL": app_url, "APP_HOST": url.hostname, "APP_AUTHORITY": url.netloc,
         "APP_UID": str(uid), "APP_GID": str(gid), "APP_TIMEZONE": config.get("timezone", "UTC"),
-        "PASSWORDLESS": str(config.get("passwordless", True)).lower(),
+        "PASSWORDLESS": str(passwordless).lower(),
         "GATEWAY_BIND": "127.0.0.1" if args.development else "0.0.0.0",
         "GATEWAY_HTTPS_PORT": str(url.port or 443), "GATEWAY_HTTP_PORT": "8080",
         "CADDY_TLS": "internal", "SECRETS_DIR": str(secret_dir),
@@ -134,6 +159,10 @@ def main() -> int:
     print("Created configuration, private secret files and storage markers.")
     if args.development:
         print("Local storage shares one disk. Copy backups to another physical device for drive-failure recovery.")
+    if passwordless:
+        print("Password-free: anyone who can reach the app has full access. Keep it on this computer.")
+    else:
+        print("You will create your password the first time you open the app.")
     print("Next: download models, then docker compose up -d --build --wait")
     return 0
 

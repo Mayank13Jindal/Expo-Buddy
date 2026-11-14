@@ -36,7 +36,8 @@ test('warnings, exact search entities, missing documents, titles and view-only r
       )
     const people = await (await fetch('/api/v1/contacts')).json()
     const person = people.find(
-      (row: any) => row.source_document_id && row.review_status === 'needs_attention',
+      (row: { source_document_id?: string; review_status: string }) =>
+        row.source_document_id && row.review_status === 'needs_attention',
     )
     return { company: result[0].id, person: person.id, document: person.source_document_id }
   }, suffix)

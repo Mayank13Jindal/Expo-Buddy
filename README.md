@@ -46,7 +46,9 @@ Steps:
    missing, install it with the official script (get.docker.com) and add me to the
    docker group. Then tell me to log out and log back in, and wait for me.
 3. Clone the repo and cd into it.
-4. Run ./scripts/docker.sh setup
+4. Ask me: "Should the app ask for a password when it opens? (Recommended.)"
+   If yes, run ./scripts/docker.sh setup --password
+   If no, run ./scripts/docker.sh setup --no-password
 5. Run ./scripts/docker.sh models and then ./scripts/docker.sh models --kind embeddings.
    These are slow. Do not interrupt or re-run them while they are working.
 6. Run docker compose up -d --build --wait, then check docker compose ps shows all
@@ -61,7 +63,6 @@ Rules:
 - Never delete or overwrite .env, .secrets or .local. They hold my data and keys.
 - Never disable TLS/certificate checks to make something work.
 - Do not change GATEWAY_BIND or open the app to my network unless I ask.
-  The app has no password by default.
 - At the end, give me a short summary: what you did, the app address, and anything
   that failed.
 ````
@@ -95,6 +96,11 @@ cd Expo-Buddy
 ```sh
 ./scripts/docker.sh setup
 ```
+
+Setup asks whether the app should ask for a password. Answer **y** (recommended):
+you then create your password the first time you open the app. Answer **n** only if
+the app stays on this computer; without a password, anyone who can reach it has full
+access.
 
 Setup creates `.env`, private secrets in `.secrets/` and storage under
 `.local/data`. It preserves existing configuration. Never delete or share these
@@ -135,19 +141,16 @@ private key or disable certificate verification.
 
 ### Password and phone access
 
-The default setup binds to this computer and opens without an app password.
-Anyone who can reach the app has full access, including settings. Before opening
-it to your phone or a shared network, set a password:
+If you chose a password during setup, the app asks you to create it the first
+time you open it. If you forget it, reset it on the server:
 
 ```sh
 docker compose exec api python -m app.core.reset_password
 ```
 
-Then change `PASSWORDLESS=true` to `PASSWORDLESS=false` in `.env` and apply it:
-
-```sh
-docker compose up -d --wait
-```
+To change your choice later, edit `PASSWORDLESS` in `.env` (`false` asks for a
+password, `true` does not), then run `docker compose up -d --wait`. When switching
+from password-free to a password, set the password with the command above first.
 
 See [HTTPS and phone setup](docs/setup.md#https-and-phone-access). Provider sign-in
 is separate, and cloud processing starts off.

@@ -1,5 +1,5 @@
 import { formatTime } from '../app/time'
-import { useEffect, useState, type FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Building2, Pencil, History, ArrowLeft, ExternalLink, Plus } from 'lucide-react'
@@ -17,7 +17,12 @@ import {
   Modal,
 } from '../components/ui'
 
-export type Channel = { kind: string; label: string; raw: string }
+export type Channel = {
+  kind: string
+  label: string
+  raw: string
+  evidence?: { page_id: string; quote: string }
+}
 export type Contact = {
   id: string
   full_name: string
@@ -75,13 +80,16 @@ export function RecordEditor({
           'categories',
         ]
       : ['full_name', 'designation', 'department']
-  const [channels, setChannels] = useState(record.channels)
-  useEffect(() => {
+  const [channels, setChannels] = useState(record.channels),
+    [wasOpen, setWasOpen] = useState(open)
+  // Reset the draft only when the dialog opens, so edits survive background refreshes.
+  if (open !== wasOpen) {
+    setWasOpen(open)
     if (open) {
       setChannels(record.channels)
       setError(undefined)
     }
-  }, [open])
+  }
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setBusy(true)

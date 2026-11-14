@@ -11,6 +11,7 @@ import { ProviderSettings } from './providers'
 import type {} from '../health'
 import { useLibrary, useToast } from '../app/providers'
 import { Badge, Button, ErrorMessage, Field } from '../components/ui'
+import type { SystemStatus } from '../api/types'
 
 export function SettingsPage({
   onSignedOut,
@@ -143,11 +144,14 @@ export function SettingsPage({
 export function HealthPage() {
   const health = useQuery({
     queryKey: ['system-status'],
-    queryFn: () => api<any>('/system/status'),
+    queryFn: () => api<SystemStatus>('/system/status'),
     refetchInterval: 5000,
     retry: false,
   })
-  const current = health.error instanceof ApiError ? (health.error.details as any) : health.data
+  const current =
+    health.error instanceof ApiError
+      ? (health.error.details as SystemStatus | undefined)
+      : health.data
   const data = current?.services ? current : health.data
   return (
     <>
@@ -178,7 +182,7 @@ export function HealthPage() {
           </section>
           <section className="panel">
             <h2>Storage drives</h2>
-            {data?.storage?.map((disk: any) => (
+            {data?.storage?.map((disk) => (
               <div className="status-row" key={disk.name}>
                 <span>{disk.name}</span>
                 <Badge tone={disk.ok ? 'green' : 'amber'}>{disk.message}</Badge>
@@ -193,7 +197,7 @@ export function HealthPage() {
                 <strong>{String(count)}</strong>
               </div>
             ))}
-            {data?.models?.map((model: any) => (
+            {data?.models?.map((model) => (
               <div className="status-row" key={model.name}>
                 <span>{model.name}</span>
                 <Badge>{model.cached ? 'Cached locally' : 'Download needed'}</Badge>
@@ -202,7 +206,7 @@ export function HealthPage() {
           </section>
           <section className="panel">
             <h2>Recent issues</h2>
-            {data?.errors?.map((error: any, index: number) => (
+            {data?.errors?.map((error, index) => (
               <div className="system-row" key={index}>
                 <strong>{error.stage}</strong>
                 <p>{error.reason}</p>

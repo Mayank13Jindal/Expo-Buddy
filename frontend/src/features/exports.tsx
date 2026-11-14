@@ -7,6 +7,7 @@ import { ArrowDown, ArrowUp, Download, Save } from 'lucide-react'
 import { api, send } from '../api/client'
 import { useLibrary, useToast } from '../app/providers'
 import { Badge, Button, ErrorMessage, Field, Loading } from '../components/ui'
+import type { ExportPreview, ExportRecord } from '../api/types'
 
 type Selection = {
   allow_unreviewed: boolean
@@ -109,7 +110,7 @@ export function ExportsPage() {
   })
   const exports = useQuery({
     queryKey: ['exports'],
-    queryFn: () => api<any[]>('/exports'),
+    queryFn: () => api<ExportRecord[]>('/exports'),
     refetchInterval: 3000,
   })
   const body = {
@@ -119,7 +120,7 @@ export function ExportsPage() {
   const preview = useQuery({
     queryKey: ['export-preview', body],
     enabled: step >= 3,
-    queryFn: () => send<any>('/exports/preview', body),
+    queryFn: () => send<ExportPreview>('/exports/preview', body),
     retry: false,
   })
   const update = (values: Partial<Selection>) =>
@@ -361,7 +362,7 @@ export function ExportsPage() {
           ))}
         {step >= 3 && (preview.data?.counts?.flagged_rows ?? 0) > 0 && (
           <div className="notice" role="status">
-            <strong>{preview.data.counts.flagged_rows} export rows need review</strong>
+            <strong>{preview.data?.counts.flagged_rows} export rows need review</strong>
             <p>
               These values have not all been checked, contain invalid contact syntax, or have
               unresolved suggestions. Check the Review warning column before using them for
@@ -393,7 +394,7 @@ export function ExportsPage() {
                   !selection.tables.includes('companies') &&
                   (preview.data?.counts?.brochure_only_companies ?? 0) > 0 && (
                     <p className="notice">
-                      Contacts-only leaves out {preview.data.counts.brochure_only_companies}{' '}
+                      Contacts-only leaves out {preview.data?.counts.brochure_only_companies}{' '}
                       brochure-only companies. Include Companies to keep them.
                     </p>
                   )}

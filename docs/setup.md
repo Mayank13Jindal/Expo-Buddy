@@ -20,7 +20,9 @@ The app refuses missing or mismatched markers rather than silently writing to a
 replacement directory. Existing `.env` files are preserved.
 
 Local defaults: `https://localhost:8443`, loopback-only gateway, UTC timezone,
-password-free access, cloud processing disabled, and all data under `.local/data`.
+password sign-in unless you answer no to setup's password question (you create the
+password on first use), cloud processing disabled,
+and all data under `.local/data`.
 The local backup folder shares the data disk; copy snapshots to another physical
 device for recovery from disk failure. Do not upload `.local` or `.secrets`.
 
@@ -49,12 +51,11 @@ configure that origin and the gateway binding, then trust the intended public CA
 on the phone. Camera, installable-app and offline features require a secure origin.
 See [LAN/Tailscale HTTPS](tailscale.md) and [phone installation](pwa.md).
 
-Password-free mode gives anyone who reaches that address full access to your data
-and provider settings. Keep it on a trusted LAN/VPN, or enable password access by
-setting `PASSWORDLESS=false` and recreating the API/worker with Compose. Before
-first use, password mode asks you to create a password. If you already opened
-password-free mode, its account has a random inaccessible password; set your own
-from the server before switching:
+Keep password sign-in on before you open the app to a phone or network. Optional
+password-free mode (`PASSWORDLESS=true`) gives anyone who reaches that address full
+access to your data and provider settings; use it only on a loopback-only gateway.
+If an installation already ran password-free, its account has a random inaccessible
+password; set your own from the server before switching to `PASSWORDLESS=false`:
 
 ```sh
 docker compose exec api python -m app.core.reset_password
@@ -79,7 +80,8 @@ filesystem check alone cannot prove disk independence. Local setup can also take
 `--config storage.local.json` for a custom origin on a single-disk host.
 
 Optional JSON keys `timezone` (for example `Europe/London`) and `passwordless`
-(`true` or `false`) control those generated settings. A different `.env` is never
+(`true` or `false`, default `false`) control those generated settings. Setup's
+`--password` and `--no-password` flags override the config and skip the question. A different `.env` is never
 overwritten. Changing an existing origin requires reconfiguration and restarting
 the stack; do not discard existing storage markers or secret files.
 

@@ -27,6 +27,7 @@ import {
   Loading,
   stateLabel,
 } from '../components/ui'
+import type { SystemStatus } from '../api/types'
 
 export function HomePage() {
   const [all, setAll] = useState(false),
@@ -42,7 +43,7 @@ export function HomePage() {
   })
   const system = useQuery({
     queryKey: ['system-status'],
-    queryFn: () => api<any>('/system/status'),
+    queryFn: () => api<SystemStatus>('/system/status'),
     refetchInterval: 10000,
     retry: false,
   })
@@ -245,7 +246,7 @@ export function HomePage() {
           </section>
           <section className="panel">
             <h2>AI providers</h2>
-            {data?.providers.map((provider: any) => (
+            {data?.providers.map((provider) => (
               <div className="status-row" key={provider.provider}>
                 <span>
                   {provider.provider === 'chatgpt'
@@ -267,8 +268,8 @@ export function HomePage() {
             ))}
             {data?.waiting_reason && <p className="notice">Paused: {data.waiting_reason}</p>}
             {data?.providers
-              .filter((row: any) => row.provider === 'openrouter')
-              .map((row: any) => (
+              .filter((row) => row.provider === 'openrouter')
+              .map((row) => (
                 <p className="caption" key={row.provider}>
                   Estimated this month: ${row.spent} / ${row.spending_cap}
                 </p>
@@ -282,7 +283,7 @@ export function HomePage() {
             {!available ? (
               <p className="notice">Phone queue status unavailable.</p>
             ) : data?.phone_queue.length ? (
-              data.phone_queue.map((phone: any) => (
+              data.phone_queue.map((phone) => (
                 <div className="system-row" key={phone.id}>
                   <strong>
                     {phone.device_label} · {phone.client_uuid.slice(0, 6)}
@@ -316,15 +317,15 @@ export function HomePage() {
           <section className="panel">
             <h2>System</h2>
             <QueryStatus query={system} label="System status" />
-            {system.data?.storage?.map((disk: any) => (
+            {system.data?.storage?.map((disk) => (
               <div className="system-row" key={disk.name}>
                 <strong>{disk.name}</strong>
                 <small>
-                  {disk.free_bytes == null
+                  {disk.free_bytes == null || disk.total_bytes == null
                     ? disk.message
                     : `${(disk.free_bytes / 1024 ** 3).toFixed(1)} GB free of ${(disk.total_bytes / 1024 ** 3).toFixed(1)} GB`}
                 </small>
-                {disk.total_bytes > 0 && (
+                {disk.total_bytes != null && disk.free_bytes != null && disk.total_bytes > 0 && (
                   <progress
                     className="disk-meter"
                     max={disk.total_bytes}

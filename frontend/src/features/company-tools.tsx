@@ -6,6 +6,7 @@ import { Building2, Plus, Search, StickyNote } from 'lucide-react'
 import { api, send, type Note } from '../api/client'
 import { useLibrary, useToast } from '../app/providers'
 import { Badge, Button, Empty, ErrorMessage, Field, Modal } from '../components/ui'
+import type { CompanySummary } from '../api/types'
 
 export function LinkCompany({ documentId }: { documentId: string }) {
   const { refresh } = useLibrary(),
@@ -17,7 +18,7 @@ export function LinkCompany({ documentId }: { documentId: string }) {
   const companies = useQuery({
     queryKey: ['company-choices'],
     enabled: open,
-    queryFn: () => api<any[]>('/companies'),
+    queryFn: () => api<CompanySummary[]>('/companies'),
   })
   return (
     <>
@@ -198,7 +199,8 @@ export function CompaniesPage() {
     [q, setQ] = useState('')
   const rows = useQuery({
     queryKey: ['companies', all, activeExpo?.id],
-    queryFn: () => api<any[]>(`/companies${!all && activeExpo ? `?expo_id=${activeExpo.id}` : ''}`),
+    queryFn: () =>
+      api<CompanySummary[]>(`/companies${!all && activeExpo ? `?expo_id=${activeExpo.id}` : ''}`),
   })
   const visible = rows.data?.filter((row) =>
     JSON.stringify([row.display_name, row.people, row.products, row.services, row.channels])

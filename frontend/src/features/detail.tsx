@@ -55,10 +55,10 @@ export function DetailPage() {
     currentSource && historical.data && params.get('asset')
       ? { ...currentSource, asset_id: historical.data.id, asset: historical.data }
       : currentSource
+  const linkedPage = doc?.pages?.findIndex((page) => page.id === params.get('page')) ?? -1
   useEffect(() => {
-    const index = doc?.pages?.findIndex((page) => page.id === params.get('page'))
-    if (index !== undefined && index >= 0) setPage(index)
-  }, [doc?.pages?.length, params])
+    if (linkedPage >= 0) setPage(linkedPage)
+  }, [linkedPage, params])
   let box: number[][] | undefined
   try {
     const value = JSON.parse(params.get('box') ?? 'null')

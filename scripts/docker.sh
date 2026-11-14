@@ -13,7 +13,11 @@ if [ "$(id -u)" = 0 ]; then
 fi
 command -v docker >/dev/null
 docker compose version >/dev/null
-exec docker run --rm --user "$(id -u):$(id -g)" \
+# Keep the terminal interactive so setup can ask questions.
+tty_flags=''
+if [ -t 0 ] && [ -t 1 ]; then tty_flags='-it'; fi
+# shellcheck disable=SC2086
+exec docker run --rm $tty_flags --user "$(id -u):$(id -g)" \
   --env PYTHONDONTWRITEBYTECODE=1 \
   --mount "type=bind,source=$project_dir,target=$project_dir" \
   --workdir "$project_dir" \

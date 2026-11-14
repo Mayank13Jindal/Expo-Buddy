@@ -106,17 +106,19 @@ test('offline app reload, new expo, booth, photo and edited note survive and syn
   })
   await page.getByRole('button', { name: 'Sync now', exact: true }).click()
   const notes = await page.evaluate(async () => (await fetch('/api/v1/notes')).json())
-  expect(notes.filter((row: any) => row.text === latestNote)).toHaveLength(1)
+  expect(notes.filter((row: { text: string }) => row.text === latestNote)).toHaveLength(1)
   const expoID = await page.evaluate(
     async (name) =>
-      (await (await fetch('/api/v1/expos')).json()).find((row: any) => row.name === name).id,
+      (await (await fetch('/api/v1/expos')).json()).find(
+        (row: { name: string; id: string }) => row.name === name,
+      ).id,
     name,
   )
   const docs = await page.evaluate(
     async (expoID) => await (await fetch(`/api/v1/documents?expo_id=${expoID}`)).json(),
     expoID,
   )
-  expect(docs.filter((row: any) => row.title === 'FAKE-OFFLINE.png')).toHaveLength(1)
+  expect(docs.filter((row: { title: string }) => row.title === 'FAKE-OFFLINE.png')).toHaveLength(1)
   await page.goto('/library')
   await expect(page.getByRole('heading', { name: 'FAKE-OFFLINE.png' }).first()).toBeVisible()
   await page.getByRole('heading', { name: 'FAKE-OFFLINE.png' }).first().click()

@@ -1,7 +1,7 @@
 SHELL := /bin/bash
 PYTHON := .venv/bin/python
 COMPOSE := docker compose -f docker-compose.yml $(if $(wildcard docker-compose.override.yml),-f docker-compose.override.yml,) $(if $(wildcard .local/compose.proxy.yml),-f .local/compose.proxy.yml,) $(if $(wildcard deploy/https.local.yml),-f deploy/https.local.yml,)
-.PHONY: init-dev check-storage up stop down test test-backend test-frontend test-integration lint build dev-install probe models openapi format e2e backup restore reset-password sample-export verify-upload-limits
+.PHONY: init-dev check-storage up stop down test test-backend test-frontend test-integration lint build dev-install probe models openapi format lock-upgrade e2e backup restore reset-password sample-export verify-upload-limits
 
 init-dev:
 	python3 scripts/setup.py --development
@@ -38,6 +38,11 @@ openapi:
 	cd frontend && npm run generate-api
 format:
 	cd frontend && npm run format
+# Refresh transitive Python dependencies in the hashed lockfiles; direct versions stay as pinned in pyproject.toml.
+lock-upgrade:
+	uv pip compile backend/pyproject.toml --upgrade --generate-hashes --python-version 3.12 --output-file backend/requirements.lock
+	uv pip compile backend/pyproject.toml --extra dev --upgrade --generate-hashes --python-version 3.12 --output-file backend/requirements-dev.lock
+	uv pip compile backend/pyproject.toml --extra worker --upgrade --generate-hashes --python-version 3.12 --output-file backend/requirements-worker.lock
 e2e:
 	cd frontend && npm run e2e
 backup:

@@ -21,7 +21,9 @@ test('search, multiline address editing, review decisions, people empty states a
   await open(page)
   const fixture = await page.evaluate(async (mode) => {
     const docs = await (await fetch('/api/v1/documents?limit=500')).json()
-    return docs.find((row: any) => row.title.startsWith('SYNTHETIC findings ' + mode + ' ')) as {
+    return docs.find((row: { title: string }) =>
+      row.title.startsWith('SYNTHETIC findings ' + mode + ' '),
+    ) as {
       id: string
       company_id: string
       expo_id: string
@@ -152,7 +154,7 @@ test('Overview and Settings distinguish connected ChatGPT from disabled cloud pr
   await page.route('**/api/v1/dashboard*', async (route) => {
     const response = await route.fetch(),
       data = await response.json()
-    const chatgpt = data.providers.find((row: any) => row.provider === 'chatgpt')
+    const chatgpt = data.providers.find((row: { provider: string }) => row.provider === 'chatgpt')
     Object.assign(chatgpt, {
       connected: true,
       enabled: true,
@@ -165,7 +167,7 @@ test('Overview and Settings distinguish connected ChatGPT from disabled cloud pr
     const response = await route.fetch(),
       data = await response.json()
     data.cloud_fallback = false
-    const chatgpt = data.providers.find((row: any) => row.provider === 'chatgpt')
+    const chatgpt = data.providers.find((row: { provider: string }) => row.provider === 'chatgpt')
     Object.assign(chatgpt, {
       enabled: true,
       active_account: 'synthetic',

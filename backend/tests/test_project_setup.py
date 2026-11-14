@@ -36,6 +36,34 @@ def test_local_setup_generates_private_config_and_is_idempotent(tmp_path, monkey
     assert (tmp_path / '.secrets/encryption_key').read_bytes() == secret
 
 
+def run_setup(tmp_path, monkeypatch, *flags, tty=False, answers=()):
+    monkeypatch.setattr(setup.os, 'getuid', lambda: 1000)
+    monkeypatch.setattr(setup.os, 'getgid', lambda: 1000)
+    monkeypatch.setattr(sys, 'argv', ['setup', '--local', '--project', str(tmp_path), *flags])
+    monkeypatch.setattr(sys.stdin, 'isatty', lambda: tty)
+    replies = iter(answers)
+    monkeypatch.setattr('builtins.input', lambda prompt='': next(replies))
+    assert setup.main() == 0
+    return read_env(tmp_path / '.env')['PASSWORDLESS']
+
+
+def test_setup_without_a_terminal_requires_a_password(tmp_path, monkeypatch):
+    assert run_setup(tmp_path, monkeypatch) == 'false'
+
+
+@pytest.mark.parametrize(('answers', 'expected'), [
+    ([''], 'false'), (['y'], 'false'), (['n'], 'true'), (['maybe', 'no'], 'true'),
+])
+def test_setup_asks_whether_to_use_a_password(tmp_path, monkeypatch, answers, expected):
+    assert run_setup(tmp_path, monkeypatch, tty=True, answers=answers) == expected
+
+
+@pytest.mark.parametrize(('flag', 'expected'), [('--password', 'false'), ('--no-password', 'true')])
+def test_password_flags_skip_the_question(tmp_path, monkeypatch, flag, expected):
+    # No answers are available, so asking would raise StopIteration.
+    assert run_setup(tmp_path, monkeypatch, flag, tty=True) == expected
+
+
 def test_setup_rejects_string_passwordless_before_writing(tmp_path, monkeypatch):
     config = tmp_path / 'config.json'
     config.write_text(json.dumps({'passwordless': 'false'}))
