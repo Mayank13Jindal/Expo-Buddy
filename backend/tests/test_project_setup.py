@@ -14,16 +14,19 @@ spec.loader.exec_module(setup)
 from storage_config import MARKER, NAMES, read_env  # noqa: E402
 
 
-@pytest.mark.parametrize('passwordless', [True, False])
+@pytest.mark.parametrize('passwordless', [None, True, False])
 def test_local_setup_generates_private_config_and_is_idempotent(tmp_path, monkeypatch, passwordless):
     monkeypatch.setattr(setup.os, 'getuid', lambda: 1000)
     monkeypatch.setattr(setup.os, 'getgid', lambda: 1000)
     config = tmp_path / 'config.json'
-    config.write_text(json.dumps({'passwordless': passwordless, 'timezone': 'UTC'}))
+    values = {'timezone': 'UTC'}
+    if passwordless is not None:
+        values['passwordless'] = passwordless
+    config.write_text(json.dumps(values))
     monkeypatch.setattr(sys, 'argv', ['setup', '--local', '--project', str(tmp_path), '--config', str(config)])
     assert setup.main() == 0
     env = read_env(tmp_path / '.env')
-    assert env['PASSWORDLESS'] == str(passwordless).lower()
+    assert env['PASSWORDLESS'] == str(bool(passwordless)).lower()
     assert env['GATEWAY_BIND'] == '127.0.0.1'
     assert env['APP_TIMEZONE'] == 'UTC'
     assert (tmp_path / '.env').stat().st_mode & 0o777 == 0o600
@@ -31,6 +34,7 @@ def test_local_setup_generates_private_config_and_is_idempotent(tmp_path, monkey
         assert (Path(env[f'{name}_DIR']) / MARKER).read_text().strip() == env[f'{name}_VOLUME_ID']
     before = (tmp_path / '.env').read_bytes()
     secret = (tmp_path / '.secrets/encryption_key').read_bytes()
+    config.write_text(json.dumps({'passwordless': not bool(passwordless)}))
     assert setup.main() == 0
     assert (tmp_path / '.env').read_bytes() == before
     assert (tmp_path / '.secrets/encryption_key').read_bytes() == secret

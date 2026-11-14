@@ -20,7 +20,7 @@ The app refuses missing or mismatched markers rather than silently writing to a
 replacement directory. Existing `.env` files are preserved.
 
 Local defaults: `https://localhost:8443`, loopback-only gateway, UTC timezone,
-password-free access, cloud processing disabled, and all data under `.local/data`.
+password access enabled, cloud processing disabled, and all data under `.local/data`.
 The local backup folder shares the data disk; copy snapshots to another physical
 device for recovery from disk failure. Do not upload `.local` or `.secrets`.
 
@@ -49,12 +49,15 @@ configure that origin and the gateway binding, then trust the intended public CA
 on the phone. Camera, installable-app and offline features require a secure origin.
 See [LAN/Tailscale HTTPS](tailscale.md) and [phone installation](pwa.md).
 
-Password-free mode gives anyone who reaches that address full access to your data
-and provider settings. Keep it on a trusted LAN/VPN, or enable password access by
-setting `PASSWORDLESS=false` and recreating the API/worker with Compose. Before
-first use, password mode asks you to create a password. If you already opened
-password-free mode, its account has a random inaccessible password; set your own
-from the server before switching:
+The first time you open the app, it asks you to create a password. To turn the
+password off, change `PASSWORDLESS=false` to `PASSWORDLESS=true` in `.env` and run
+`docker compose up -d --wait`. Only do that on a computer nobody else can reach:
+password-free mode gives anyone who reaches the app full access to your data and
+provider settings.
+
+Installs made before this change keep their old setting. To add a password to one,
+run the command below, then set `PASSWORDLESS=false` in `.env` and run
+`docker compose up -d --wait`:
 
 ```sh
 docker compose exec api python -m app.core.reset_password

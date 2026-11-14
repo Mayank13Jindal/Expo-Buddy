@@ -1,8 +1,9 @@
 # Security
 
 Expo Buddy is a single-owner application for a trusted host/LAN/VPN. Its default
-local setup is password-free and binds to loopback. Do not expose password-free
-mode to an untrusted network. AI providers and agents receive only the access you
+local setup requires a password and binds to loopback. The first time you open
+the app, it asks you to create a password. Only enable password-free mode on a
+computer nobody else can reach. AI providers and agents receive only the access you
 enable, but data read by a separately configured cloud agent may leave your network.
 
 For a vulnerability, use the repository's **Security → Report a vulnerability**
