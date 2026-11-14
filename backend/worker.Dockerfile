@@ -3,7 +3,7 @@ FROM pgvector/pgvector:0.8.7-pg18-bookworm@sha256:2358fcba361ed2233a5ed81b5fe4ca
 RUN mkdir -p /pg-tools/lib && cp /usr/lib/postgresql/18/bin/pg_dump /pg-tools/ && \
     ldd /usr/lib/postgresql/18/bin/pg_dump | awk '$3 ~ /^\// {print $3} $1 ~ /^\// {print $1}' | xargs -r cp -L -t /pg-tools/lib
 
-FROM python:3.12.14-slim-bookworm@sha256:392307d22300de8b5986851a12d9176dfc0fc073e65bf6523ebd7dcbeb23564e
+FROM python:3.12.16-slim-bookworm@sha256:935c3c5b12357a7e10caa9c1e6ca5692344d97cf229832ef584be2cec9fc03df
 COPY --from=pgtools /pg-tools /opt/pg-tools
 COPY --chmod=755 deploy/pg-dump.sh /usr/local/bin/pg_dump
 WORKDIR /app
