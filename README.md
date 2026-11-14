@@ -1,5 +1,7 @@
 # Expo Buddy
 
+![Expo Buddy — turn expo discoveries into organized contacts](docs/images/banner.png)
+
 A self-hosted home for the people, companies and ideas you collect at expos.
 Scan visiting cards and brochures, check extracted details beside the originals,
 keep private notes, and export the contacts you want to follow up with.
