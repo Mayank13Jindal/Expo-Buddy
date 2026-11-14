@@ -2,7 +2,7 @@ import threading
 from functools import lru_cache
 from pathlib import Path
 
-from sqlalchemy import or_, select, update
+from sqlalchemy import case, false, or_, select, update
 from sqlalchemy.orm import Session
 
 from app.core.config import Settings
@@ -15,6 +15,7 @@ MODELS = {
     "bge": ("bge-5c38ec7c405e", "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a"),
 }
 _encode_lock = threading.Lock()
+BATCH_SIZE = 32
 
 
 def version(settings: Settings) -> str:
@@ -53,6 +54,12 @@ def embed_batch(db: Session, target, settings: Settings):
     first = db.get(SearchChunk, target)
     if not first:
         return
+    # The job's own chunk always comes first, then the rest of its document, then the
+    # oldest backlog. Otherwise a job could finish without embedding its own chunk and
+    # leave the document stuck in "indexing".
+    same_document = (
+        SearchChunk.document_id == first.document_id if first.document_id else false()
+    )
     rows = list(
         db.scalars(
             select(SearchChunk)
@@ -63,8 +70,11 @@ def embed_batch(db: Session, target, settings: Settings):
                     SearchChunk.embedding_text_revision != SearchChunk.text_revision,
                 )
             )
-            .order_by(SearchChunk.created_at)
-            .limit(32)
+            .order_by(
+                case((SearchChunk.id == first.id, 0), (same_document, 1), else_=2),
+                SearchChunk.created_at,
+            )
+            .limit(BATCH_SIZE)
         )
     )
     if not rows:
