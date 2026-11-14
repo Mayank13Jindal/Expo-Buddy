@@ -19,7 +19,15 @@ Personal notes remain local to your server. Optional cloud extraction sends prin
 text and explicitly entered capture/reprocessing context. Optional image checks use
 local Ollama. No provider account is needed to browse, edit or search your library.
 
-## Run with Docker
+## Install
+
+Pick the installation guide that suits you:
+
+- **[AI-assisted install](INSTALL.md#ai-assisted-install)** — copy a ready-to-use prompt into your coding agent.
+- **[Easy install](INSTALL.md#easy-install)** — copy and paste commands in 6 steps.
+- **[Manual install](INSTALL.md#manual-install)** — follow every step with explanations.
+
+### Docker quick start
 
 Supported host: **Linux x86-64**, Docker Engine with Compose v2, and a POSIX shell.
 Allow several GB for container images/model downloads and at least 5 GiB of free
