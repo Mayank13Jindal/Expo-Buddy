@@ -7,9 +7,215 @@ import { useLibrary, useToast } from '../app/providers'
 import { Badge, Button, ErrorMessage, Field, Modal } from '../components/ui'
 
 export function AgentSettings() {
-  const { refresh } = useLibrary(), toast = useToast()
-  const tokens = useQuery({ queryKey: ['agent-tokens'], queryFn: () => api<any[]>('/settings/agent-tokens') })
-  const activity = useQuery({ queryKey: ['agent-activity'], queryFn: () => api<any[]>('/settings/agent-activity'), refetchInterval: 10000 })
-  const [open, setOpen] = useState(false), [name, setName] = useState('Hermes'), [scopes, setScopes] = useState(['read']), [expiry, setExpiry] = useState(''), [secret, setSecret] = useState(''), [error, setError] = useState<unknown>(), [busy, setBusy] = useState(false)
-  return <section className="panel"><div className="panel-heading"><div><h2><Shield size={19} />Agent access</h2><p>Connect Hermes over the same HTTPS address.</p></div><Button variant="secondary" onClick={() => { setOpen(true); setSecret('') }}><Plus size={17} />New agent token</Button></div><p className="notice">Whatever Hermes reads may be sent to the AI model Hermes uses. If that model runs in the cloud, those library details leave your server. Personal notes require a separate scope.</p>{tokens.data?.map(token => <div className="recent-row" key={token.id}><KeyRound size={18} /><div><strong>{token.name}</strong><small>{token.scopes.join(' · ')} · {token.last_used_at ? `Last used ${formatTime(token.last_used_at)}` : 'Not used yet'}{token.expires_at ? ` · Expires ${formatDate(token.expires_at)}` : ''}</small></div><Badge>{token.revoked_at ? 'Revoked' : 'Active'}</Badge>{!token.revoked_at && <button className="icon-button" aria-label={`Revoke ${token.name}`} onClick={async () => { await api(`/settings/agent-tokens/${token.id}`, { method: 'DELETE' }); await refresh(); toast('Agent token revoked.') }}><Trash2 size={16} /></button>}</div>)}<details className="raw-text"><summary>Agent activity</summary>{activity.data?.slice(0, 100).map(row => <div className="history-row" key={row.id}><strong>{row.tool}</strong><small>{formatTime(row.created_at)} · {row.status}</small><p>{JSON.stringify(row.arguments_summary)}</p></div>)}</details><Modal open={open} onOpenChange={value => { setOpen(value); if (!value) setSecret('') }} title={secret ? 'Save your token now' : 'Connect an agent'} description={secret ? 'Shown once. Store it in your protected Hermes configuration.' : 'Start with read access. Add only the scopes you need.'}>{secret ? <><Field label="Agent token"><input readOnly value={secret} autoComplete="off" onFocus={event => event.target.select()} /></Field><Button variant="secondary" onClick={async () => { await navigator.clipboard.writeText(secret); toast('Token copied.') }}>Copy token</Button><p className="caption">Endpoint: {location.origin}/mcp · See docs/hermes-mcp.md for configuration.</p><Button onClick={() => { setSecret(''); setOpen(false) }}>I have saved it</Button></> : <form onSubmit={event => { event.preventDefault(); setBusy(true); void send<{token:string}>('/settings/agent-tokens', { name, scopes, expires_at: expiry ? new Date(expiry).toISOString() : null }).then(async result => { setSecret(result.token); await refresh() }).catch(setError).finally(() => setBusy(false)) }}><Field label="Agent name"><input required value={name} onChange={event => setName(event.target.value)} maxLength={100} /></Field>{[{id:'read',label:'Read library',hint:'Search, source text and records.'},{id:'notes',label:'Include personal notes',hint:'Adds notes to reads and exports.'},{id:'write',label:'Add notes, tags and proposals',hint:'Field changes wait for your review.'},{id:'export',label:'Generate exports',hint:'Includes original files when ZIP is chosen.'}].map(scope => <label className="checkbox-label export-check" key={scope.id}><input type="checkbox" checked={scopes.includes(scope.id)} disabled={scope.id === 'read'} onChange={event => setScopes(current => event.target.checked ? [...current, scope.id] : current.filter(value => value !== scope.id))} /><span><strong>{scope.label}</strong><small>{scope.hint}</small></span></label>)}<Field label="Expires on (optional)"><input type="date" value={expiry} onChange={event => setExpiry(event.target.value)} /></Field><p className="caption">Agents cannot delete records, change settings, or access provider keys, backups or account controls.</p><ErrorMessage error={error} /><div className="form-actions"><Button disabled={busy} type="submit">{busy ? 'Creating…' : 'Create token'}</Button></div></form>}</Modal></section>
+  const { refresh } = useLibrary(),
+    toast = useToast()
+  const tokens = useQuery({
+    queryKey: ['agent-tokens'],
+    queryFn: () => api<any[]>('/settings/agent-tokens'),
+  })
+  const activity = useQuery({
+    queryKey: ['agent-activity'],
+    queryFn: () => api<any[]>('/settings/agent-activity'),
+    refetchInterval: 10000,
+  })
+  const [open, setOpen] = useState(false),
+    [name, setName] = useState('Hermes'),
+    [scopes, setScopes] = useState(['read']),
+    [expiry, setExpiry] = useState(''),
+    [secret, setSecret] = useState(''),
+    [error, setError] = useState<unknown>(),
+    [busy, setBusy] = useState(false)
+  return (
+    <section className="panel">
+      <div className="panel-heading">
+        <div>
+          <h2>
+            <Shield size={19} />
+            Agent access
+          </h2>
+          <p>Connect Hermes over the same HTTPS address.</p>
+        </div>
+        <Button
+          variant="secondary"
+          onClick={() => {
+            setOpen(true)
+            setSecret('')
+          }}
+        >
+          <Plus size={17} />
+          New agent token
+        </Button>
+      </div>
+      <p className="notice">
+        Whatever Hermes reads may be sent to the AI model Hermes uses. If that model runs in the
+        cloud, those library details leave your server. Personal notes require a separate scope.
+      </p>
+      {tokens.data?.map((token) => (
+        <div className="recent-row" key={token.id}>
+          <KeyRound size={18} />
+          <div>
+            <strong>{token.name}</strong>
+            <small>
+              {token.scopes.join(' · ')} ·{' '}
+              {token.last_used_at ? `Last used ${formatTime(token.last_used_at)}` : 'Not used yet'}
+              {token.expires_at ? ` · Expires ${formatDate(token.expires_at)}` : ''}
+            </small>
+          </div>
+          <Badge>{token.revoked_at ? 'Revoked' : 'Active'}</Badge>
+          {!token.revoked_at && (
+            <button
+              className="icon-button"
+              aria-label={`Revoke ${token.name}`}
+              onClick={async () => {
+                await api(`/settings/agent-tokens/${token.id}`, { method: 'DELETE' })
+                await refresh()
+                toast('Agent token revoked.')
+              }}
+            >
+              <Trash2 size={16} />
+            </button>
+          )}
+        </div>
+      ))}
+      <details className="raw-text">
+        <summary>Agent activity</summary>
+        {activity.data?.slice(0, 100).map((row) => (
+          <div className="history-row" key={row.id}>
+            <strong>{row.tool}</strong>
+            <small>
+              {formatTime(row.created_at)} · {row.status}
+            </small>
+            <p>{JSON.stringify(row.arguments_summary)}</p>
+          </div>
+        ))}
+      </details>
+      <Modal
+        open={open}
+        onOpenChange={(value) => {
+          setOpen(value)
+          if (!value) setSecret('')
+        }}
+        title={secret ? 'Save your token now' : 'Connect an agent'}
+        description={
+          secret
+            ? 'Shown once. Store it in your protected Hermes configuration.'
+            : 'Start with read access. Add only the scopes you need.'
+        }
+      >
+        {secret ? (
+          <>
+            <Field label="Agent token">
+              <input
+                readOnly
+                value={secret}
+                autoComplete="off"
+                onFocus={(event) => event.target.select()}
+              />
+            </Field>
+            <Button
+              variant="secondary"
+              onClick={async () => {
+                await navigator.clipboard.writeText(secret)
+                toast('Token copied.')
+              }}
+            >
+              Copy token
+            </Button>
+            <p className="caption">
+              Endpoint: {location.origin}/mcp · See docs/hermes-mcp.md for configuration.
+            </p>
+            <Button
+              onClick={() => {
+                setSecret('')
+                setOpen(false)
+              }}
+            >
+              I have saved it
+            </Button>
+          </>
+        ) : (
+          <form
+            onSubmit={(event) => {
+              event.preventDefault()
+              setBusy(true)
+              void send<{ token: string }>('/settings/agent-tokens', {
+                name,
+                scopes,
+                expires_at: expiry ? new Date(expiry).toISOString() : null,
+              })
+                .then(async (result) => {
+                  setSecret(result.token)
+                  await refresh()
+                })
+                .catch(setError)
+                .finally(() => setBusy(false))
+            }}
+          >
+            <Field label="Agent name">
+              <input
+                required
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                maxLength={100}
+              />
+            </Field>
+            {[
+              { id: 'read', label: 'Read library', hint: 'Search, source text and records.' },
+              {
+                id: 'notes',
+                label: 'Include personal notes',
+                hint: 'Adds notes to reads and exports.',
+              },
+              {
+                id: 'write',
+                label: 'Add notes, tags and proposals',
+                hint: 'Field changes wait for your review.',
+              },
+              {
+                id: 'export',
+                label: 'Generate exports',
+                hint: 'Includes original files when ZIP is chosen.',
+              },
+            ].map((scope) => (
+              <label className="checkbox-label export-check" key={scope.id}>
+                <input
+                  type="checkbox"
+                  checked={scopes.includes(scope.id)}
+                  disabled={scope.id === 'read'}
+                  onChange={(event) =>
+                    setScopes((current) =>
+                      event.target.checked
+                        ? [...current, scope.id]
+                        : current.filter((value) => value !== scope.id),
+                    )
+                  }
+                />
+                <span>
+                  <strong>{scope.label}</strong>
+                  <small>{scope.hint}</small>
+                </span>
+              </label>
+            ))}
+            <Field label="Expires on (optional)">
+              <input
+                type="date"
+                value={expiry}
+                onChange={(event) => setExpiry(event.target.value)}
+              />
+            </Field>
+            <p className="caption">
+              Agents cannot delete records, change settings, or access provider keys, backups or
+              account controls.
+            </p>
+            <ErrorMessage error={error} />
+            <div className="form-actions">
+              <Button disabled={busy} type="submit">
+                {busy ? 'Creating…' : 'Create token'}
+              </Button>
+            </div>
+          </form>
+        )}
+      </Modal>
+    </section>
+  )
 }

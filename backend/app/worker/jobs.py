@@ -5,6 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.config import Settings
+from app.core.logging import error_type
 from app.core.storage import StorageGuard, configured_volumes
 from app.db.library import Document
 from app.db.processing import Job
@@ -137,7 +138,7 @@ def execute_job(job_id: UUID, worker_id: str) -> None:
                 db.rollback()
                 job = db.get(Job, job_id)
                 fail_or_retry(db, job, str(error), waiting=True)
-            except Exception:
+            except Exception as error:
                 db.rollback()
                 job = db.get(Job, job_id)
                 fail_or_retry(db, job, "Processing could not finish. Retry or check system health.")
@@ -146,6 +147,14 @@ def execute_job(job_id: UUID, worker_id: str) -> None:
                     if doc:
                         doc.processing_state = "failed"
                         db.commit()
-                logging.getLogger("worker").warning("job_failed", extra={"event": "job_failed"})
+                logging.getLogger("worker").warning(
+                    "job_failed",
+                    extra={
+                        "event": "job_failed",
+                        "job_id": job_id,
+                        "job_kind": job.kind,
+                        "error_type": error_type(error),
+                    },
+                )
     finally:
         engine.dispose()

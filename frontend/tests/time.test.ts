@@ -1,7 +1,7 @@
 import { expect, it, vi } from 'vitest'
 import { formatDate, formatTime } from '../src/app/time'
 it('missing or malformed timestamps never display Invalid Date', () => {
-  vi.stubGlobal('localStorage', {getItem: ()=>'UTC'})
+  vi.stubGlobal('localStorage', { getItem: () => 'UTC' })
   expect(formatTime(undefined)).toBe('Not available')
   expect(formatTime(null)).toBe('Not available')
   expect(formatTime('bad-date')).toBe('Not available')

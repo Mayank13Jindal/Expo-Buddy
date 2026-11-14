@@ -7,18 +7,270 @@ import { useLibrary, useToast } from '../app/providers'
 import { Badge, Button, Empty, ErrorMessage, Loading, stateLabel } from '../components/ui'
 
 type GroupDoc = Document & { pages: Page[] }
-type Batch = { id: string; documents: GroupDoc[]; suggestions: { document_ids: string[]; reason: string }[] }
+type Batch = {
+  id: string
+  documents: GroupDoc[]
+  suggestions: { document_ids: string[]; reason: string }[]
+}
 export function GroupingPage() {
-  const { activeExpo, refresh } = useLibrary(), toast = useToast()
-  const query = useQuery({ queryKey: ['grouping', activeExpo?.id], queryFn: () => api<{ batches: Batch[] }>(`/grouping${activeExpo ? `?expo_id=${activeExpo.id}` : ''}`), refetchInterval: 5000 })
-  const [batchId, setBatchId] = useState(''), [chosen, setChosen] = useState<string[]>([]), [busy, setBusy] = useState(false), [error, setError] = useState<unknown>(), [lastAction, setLastAction] = useState<string>()
-  const batch = query.data?.batches.find(item => item.id === batchId) ?? query.data?.batches[0]
-  const ready = batch?.documents.every(doc => ['waiting_grouping', 'waiting_ai', 'ready'].includes(doc.processing_state))
-  const undo = async (id: string) => { await send('/grouping/undo', { action_id: id }); await refresh(); setLastAction(undefined); toast('Groups restored.') }
-  const action = async (path: string, body: unknown) => {
-    setBusy(true); setError(undefined)
-    try { const result = await send<{ action_id: string }>(`/grouping/${path}`, body); setLastAction(result.action_id); setChosen([]); await refresh(); toast(['accept', 'accept-all', 'keep-separate'].includes(path) ? 'Groups confirmed. AI extraction queued.' : 'Groups saved.', () => { void undo(result.action_id) }) }
-    catch (error) { setError(error) } finally { setBusy(false) }
+  const { activeExpo, refresh } = useLibrary(),
+    toast = useToast()
+  const query = useQuery({
+    queryKey: ['grouping', activeExpo?.id],
+    queryFn: () =>
+      api<{ batches: Batch[] }>(`/grouping${activeExpo ? `?expo_id=${activeExpo.id}` : ''}`),
+    refetchInterval: 5000,
+  })
+  const [batchId, setBatchId] = useState(''),
+    [chosen, setChosen] = useState<string[]>([]),
+    [busy, setBusy] = useState(false),
+    [error, setError] = useState<unknown>(),
+    [lastAction, setLastAction] = useState<string>()
+  const batch = query.data?.batches.find((item) => item.id === batchId) ?? query.data?.batches[0]
+  const ready = batch?.documents.every((doc) =>
+    ['waiting_grouping', 'waiting_ai', 'ready'].includes(doc.processing_state),
+  )
+  const undo = async (id: string) => {
+    await send('/grouping/undo', { action_id: id })
+    await refresh()
+    setLastAction(undefined)
+    toast('Groups restored.')
   }
-  return <><div className="page-heading"><div><h1>Check your photo groups</h1><p className="muted">Confirm which fronts, backs, and brochure pages belong together. AI extraction starts after confirmation.</p></div>{lastAction && <Button variant="secondary" onClick={() => { void undo(lastAction) }}><Undo2 size={17} />Undo last change</Button>}</div><ErrorMessage error={error ?? query.error} />{query.isPending ? <Loading /> : query.isError ? <Button variant="secondary" onClick={()=>{void query.refetch()}}>Retry groups</Button> : !batch ? <Empty title="No groups waiting" description="New photos will appear here after their text is read." action={<Link className="button secondary" to="/capture">Add more files</Link>} /> : <><div className="group-toolbar"><select aria-label="Upload batch" value={batch.id} onChange={event => { setBatchId(event.target.value); setChosen([]) }}>{query.data?.batches.map((item, index) => <option key={item.id} value={item.id}>Batch {index + 1} · {item.documents.length} documents</option>)}</select><div className="button-row"><Button disabled={busy || !ready} onClick={() => { void action('accept-all', { upload_session_id: batch.id }) }}><Check size={17} />Confirm all &amp; start AI</Button><Button variant="secondary" disabled={busy || !ready} onClick={() => { void action('keep-separate', { upload_session_id: batch.id }) }}>Each file separate</Button><Button variant="secondary" disabled={busy || chosen.length < 2 || !ready} onClick={() => { void action('combine', { document_ids: chosen }) }}><Layers size={16} />Combine {chosen.length ? `(${chosen.length})` : ''}</Button></div></div>{!ready && <p className="notice">Some files are still being read. You can confirm their groups when reading finishes.</p>}<div className="suggestion-list">{batch.suggestions.filter(group => group.document_ids.length > 1).map(group => <div className="suggestion" key={group.document_ids.join()}><Layers size={20} /><div><strong>{group.document_ids.length} files may belong together</strong><p>{group.reason}</p></div><Button variant="secondary" disabled={busy || !ready} onClick={() => { void action('accept', { document_ids: group.document_ids }) }}>Accept group</Button></div>)}</div><div className="group-grid">{batch.documents.map(doc => <article className={`panel group-card ${chosen.includes(doc.id) ? 'selected' : ''}`} key={doc.id}><div className="group-card-heading"><label className="checkbox-label"><input type="checkbox" checked={chosen.includes(doc.id)} onChange={event => setChosen(items => event.target.checked ? [...items, doc.id] : items.filter(id => id !== doc.id))} />Select document</label><Badge>{stateLabel(doc.processing_state)}</Badge></div><h2>{doc.title}</h2><div className="group-pages">{doc.pages.map((page, index) => <div key={page.id}><img src={`/api/v1/assets/${page.asset_id}/thumbnail?page_id=${page.id}`} loading="lazy" alt={`Page ${index + 1}`} /><div><span>Page {index + 1}</span><select aria-label={`Role of page ${index + 1}`} value={page.role} disabled={busy || !ready} onChange={event => { void action('reorder', { document_id: doc.id, page_ids: doc.pages.map(page => page.id), roles: { [page.id]: event.target.value } }) }}><option value="page">Page</option><option value="front">Front</option><option value="back">Back</option></select></div>{doc.pages.length > 1 && <div className="button-row"><button className="icon-button" aria-label={`Move page ${index + 1} up`} disabled={busy || !ready || !index} onClick={() => { const order = doc.pages.map(page => page.id); [order[index - 1], order[index]] = [order[index], order[index - 1]]; void action('reorder', { document_id: doc.id, page_ids: order }) }}><ArrowUp size={17} /></button><button className="text-button" disabled={busy || !ready} onClick={() => { void action('split', { document_id: doc.id, page_ids: [page.id] }) }}><Scissors size={15} />Split page</button></div>}</div>)}</div><Button variant="secondary" disabled={busy || !ready} onClick={() => { void action('accept', { document_ids: [doc.id] }) }}>Confirm &amp; start AI</Button></article>)}</div></>}</>
+  const action = async (path: string, body: unknown) => {
+    setBusy(true)
+    setError(undefined)
+    try {
+      const result = await send<{ action_id: string }>(`/grouping/${path}`, body)
+      setLastAction(result.action_id)
+      setChosen([])
+      await refresh()
+      toast(
+        ['accept', 'accept-all', 'keep-separate'].includes(path)
+          ? 'Groups confirmed. AI extraction queued.'
+          : 'Groups saved.',
+        () => {
+          void undo(result.action_id)
+        },
+      )
+    } catch (error) {
+      setError(error)
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <>
+      <div className="page-heading">
+        <div>
+          <h1>Check your photo groups</h1>
+          <p className="muted">
+            Confirm which fronts, backs, and brochure pages belong together. AI extraction starts
+            after confirmation.
+          </p>
+        </div>
+        {lastAction && (
+          <Button
+            variant="secondary"
+            onClick={() => {
+              void undo(lastAction)
+            }}
+          >
+            <Undo2 size={17} />
+            Undo last change
+          </Button>
+        )}
+      </div>
+      <ErrorMessage error={error ?? query.error} />
+      {query.isPending ? (
+        <Loading />
+      ) : query.isError ? (
+        <Button
+          variant="secondary"
+          onClick={() => {
+            void query.refetch()
+          }}
+        >
+          Retry groups
+        </Button>
+      ) : !batch ? (
+        <Empty
+          title="No groups waiting"
+          description="New photos will appear here after their text is read."
+          action={
+            <Link className="button secondary" to="/capture">
+              Add more files
+            </Link>
+          }
+        />
+      ) : (
+        <>
+          <div className="group-toolbar">
+            <select
+              aria-label="Upload batch"
+              value={batch.id}
+              onChange={(event) => {
+                setBatchId(event.target.value)
+                setChosen([])
+              }}
+            >
+              {query.data?.batches.map((item, index) => (
+                <option key={item.id} value={item.id}>
+                  Batch {index + 1} · {item.documents.length} documents
+                </option>
+              ))}
+            </select>
+            <div className="button-row">
+              <Button
+                disabled={busy || !ready}
+                onClick={() => {
+                  void action('accept-all', { upload_session_id: batch.id })
+                }}
+              >
+                <Check size={17} />
+                Confirm all &amp; start AI
+              </Button>
+              <Button
+                variant="secondary"
+                disabled={busy || !ready}
+                onClick={() => {
+                  void action('keep-separate', { upload_session_id: batch.id })
+                }}
+              >
+                Each file separate
+              </Button>
+              <Button
+                variant="secondary"
+                disabled={busy || chosen.length < 2 || !ready}
+                onClick={() => {
+                  void action('combine', { document_ids: chosen })
+                }}
+              >
+                <Layers size={16} />
+                Combine {chosen.length ? `(${chosen.length})` : ''}
+              </Button>
+            </div>
+          </div>
+          {!ready && (
+            <p className="notice">
+              Some files are still being read. You can confirm their groups when reading finishes.
+            </p>
+          )}
+          <div className="suggestion-list">
+            {batch.suggestions
+              .filter((group) => group.document_ids.length > 1)
+              .map((group) => (
+                <div className="suggestion" key={group.document_ids.join()}>
+                  <Layers size={20} />
+                  <div>
+                    <strong>{group.document_ids.length} files may belong together</strong>
+                    <p>{group.reason}</p>
+                  </div>
+                  <Button
+                    variant="secondary"
+                    disabled={busy || !ready}
+                    onClick={() => {
+                      void action('accept', { document_ids: group.document_ids })
+                    }}
+                  >
+                    Accept group
+                  </Button>
+                </div>
+              ))}
+          </div>
+          <div className="group-grid">
+            {batch.documents.map((doc) => (
+              <article
+                className={`panel group-card ${chosen.includes(doc.id) ? 'selected' : ''}`}
+                key={doc.id}
+              >
+                <div className="group-card-heading">
+                  <label className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={chosen.includes(doc.id)}
+                      onChange={(event) =>
+                        setChosen((items) =>
+                          event.target.checked
+                            ? [...items, doc.id]
+                            : items.filter((id) => id !== doc.id),
+                        )
+                      }
+                    />
+                    Select document
+                  </label>
+                  <Badge>{stateLabel(doc.processing_state)}</Badge>
+                </div>
+                <h2>{doc.title}</h2>
+                <div className="group-pages">
+                  {doc.pages.map((page, index) => (
+                    <div key={page.id}>
+                      <img
+                        src={`/api/v1/assets/${page.asset_id}/thumbnail?page_id=${page.id}`}
+                        loading="lazy"
+                        alt={`Page ${index + 1}`}
+                      />
+                      <div>
+                        <span>Page {index + 1}</span>
+                        <select
+                          aria-label={`Role of page ${index + 1}`}
+                          value={page.role}
+                          disabled={busy || !ready}
+                          onChange={(event) => {
+                            void action('reorder', {
+                              document_id: doc.id,
+                              page_ids: doc.pages.map((page) => page.id),
+                              roles: { [page.id]: event.target.value },
+                            })
+                          }}
+                        >
+                          <option value="page">Page</option>
+                          <option value="front">Front</option>
+                          <option value="back">Back</option>
+                        </select>
+                      </div>
+                      {doc.pages.length > 1 && (
+                        <div className="button-row">
+                          <button
+                            className="icon-button"
+                            aria-label={`Move page ${index + 1} up`}
+                            disabled={busy || !ready || !index}
+                            onClick={() => {
+                              const order = doc.pages.map((page) => page.id)
+                              ;[order[index - 1], order[index]] = [order[index], order[index - 1]]
+                              void action('reorder', { document_id: doc.id, page_ids: order })
+                            }}
+                          >
+                            <ArrowUp size={17} />
+                          </button>
+                          <button
+                            className="text-button"
+                            disabled={busy || !ready}
+                            onClick={() => {
+                              void action('split', { document_id: doc.id, page_ids: [page.id] })
+                            }}
+                          >
+                            <Scissors size={15} />
+                            Split page
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <Button
+                  variant="secondary"
+                  disabled={busy || !ready}
+                  onClick={() => {
+                    void action('accept', { document_ids: [doc.id] })
+                  }}
+                >
+                  Confirm &amp; start AI
+                </Button>
+              </article>
+            ))}
+          </div>
+        </>
+      )}
+    </>
+  )
 }

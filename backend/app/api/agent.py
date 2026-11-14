@@ -3,9 +3,11 @@ from datetime import datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Header, HTTPException, Request
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from app.api.dependencies import DB, OwnerSession, aware
 from app.api.exports import MIMES
@@ -66,32 +68,53 @@ def activity(session: OwnerSession, db: DB):
     ]
 
 
+def reserve_download_slot(engine, raw: str) -> tuple[UUID, float]:
+    with Session(engine, expire_on_commit=False) as db:
+        token, delay = agent.validate_queued(db, raw, rate_limit=True)
+        db.commit()
+        return token.id, delay
+
+
+def prepare_download(engine, settings, token_id: UUID, id: UUID, ticket: str):
+    with Session(engine, expire_on_commit=False) as db:
+        token = db.get(APIToken, token_id)
+        row = find(db, Export, id)
+        agent.require_scope(token, "export")
+        if (
+            row.token_id != token.id
+            or not row.download_hash
+            or not row.download_until
+            or aware(row.download_until) <= now()
+            or not hmac.compare_digest(digest(ticket), row.download_hash)
+        ):
+            raise HTTPException(
+                403, "This download ticket is missing, expired or belongs to a different token."
+            )
+        if row.state != "ready" or not row.expires_at or aware(row.expires_at) <= now():
+            raise HTTPException(410, "Generate a fresh export.")
+        path = asset_path(settings.exports_dir, row.path)
+        if not path.is_file():
+            raise HTTPException(410, "Generate a fresh export.")
+        agent.audit(db, token.id, "download_export", {"id": id}, "succeeded")
+        db.commit()
+        return path, row.format, row.id
+
+
 @router.get("/agent-download/{id}")
-def download(
-    id: UUID, request: Request, db: DB, authorization: str = Header(default=""), ticket: str = ""
+async def download(
+    id: UUID, request: Request, authorization: str = Header(default=""), ticket: str = ""
 ):
-    token = agent.validate(
-        db, authorization[7:] if authorization.startswith("Bearer ") else "", rate_limit=True
+    engine, settings = request.app.state.engine, request.app.state.settings
+    raw = authorization[7:] if authorization.startswith("Bearer ") else ""
+    token_id, delay = await run_in_threadpool(reserve_download_slot, engine, raw)
+    if delay:
+        # Over the per-minute limit: wait for this request's reserved slot instead of refusing it.
+        await agent.wait_for_slot(delay)
+    path, file_format, export_id = await run_in_threadpool(
+        prepare_download, engine, settings, token_id, id, ticket
     )
-    row = find(db, Export, id)
-    agent.require_scope(token, "export")
-    if (
-        row.token_id != token.id
-        or not row.download_hash
-        or not row.download_until
-        or aware(row.download_until) <= now()
-        or not hmac.compare_digest(digest(ticket), row.download_hash)
-    ):
-        raise HTTPException(
-            403, "This download ticket is missing, expired or belongs to a different token."
-        )
-    if row.state != "ready" or not row.expires_at or aware(row.expires_at) <= now():
-        raise HTTPException(410, "Generate a fresh export.")
-    path = asset_path(request.app.state.settings.exports_dir, row.path)
-    if not path.is_file():
-        raise HTTPException(410, "Generate a fresh export.")
-    agent.audit(db, token.id, "download_export", {"id": id}, "succeeded")
-    db.commit()
     return FileResponse(
-        path, media_type=MIMES[row.format], filename=f"Expo-Buddy-{str(row.id)[:8]}.{row.format}"
+        path,
+        media_type=MIMES[file_format],
+        filename=f"Expo-Buddy-{str(export_id)[:8]}.{file_format}",
     )
