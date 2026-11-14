@@ -54,6 +54,19 @@ multi-person associations and that retrying preserves manual corrections.
 For storage/recovery changes, practice a restore into a new database and clean
 marked storage; do not overwrite a working database to run a test.
 
+## Keeping dependencies current
+
+Dependabot opens grouped pull requests once a month for GitHub Actions, the
+frontend (npm) and the Docker images. CI, including the full Stack run, checks
+each one; merge it when it is green. Major npm updates come as separate pull
+requests. Node stays on 24.x and Python on 3.12 until you change them on purpose.
+
+Python lockfiles are hashed `uv pip compile` output, which Dependabot cannot
+regenerate. To refresh their indirect dependencies, run `make lock-upgrade`,
+then `make test` and open a pull request. To change a direct dependency, edit its
+pin in `backend/pyproject.toml` first. GitHub security alerts cover the Python
+lockfiles too, so enable Dependabot alerts in the repository settings.
+
 ## Pull requests
 
 Explain the problem, resulting behavior and checks run. Add screenshots when they
