@@ -1,7 +1,7 @@
 SHELL := /bin/bash
 PYTHON := .venv/bin/python
 COMPOSE := docker compose -f docker-compose.yml $(if $(wildcard docker-compose.override.yml),-f docker-compose.override.yml,) $(if $(wildcard .local/compose.proxy.yml),-f .local/compose.proxy.yml,) $(if $(wildcard deploy/https.local.yml),-f deploy/https.local.yml,)
-.PHONY: init-dev check-storage up stop down test test-backend test-frontend test-integration lint build dev-install probe models openapi e2e backup restore reset-password sample-export verify-upload-limits
+.PHONY: init-dev check-storage up stop down test test-backend test-frontend test-integration lint build dev-install probe models openapi format e2e backup restore reset-password sample-export verify-upload-limits
 
 init-dev:
 	python3 scripts/setup.py --development
@@ -20,7 +20,7 @@ dev-install:
 test: lint test-backend test-frontend
 lint:
 	.venv/bin/ruff check backend
-	cd frontend && npm run typecheck
+	cd frontend && npm run typecheck && npm run lint && npm run format:check
 test-backend:
 	cd backend && ../$(PYTHON) -m pytest -m 'not integration' -q
 test-frontend:
@@ -36,6 +36,8 @@ models:
 openapi:
 	$(COMPOSE) exec -T api python -c 'from app.main import create_app; import json; print(json.dumps(create_app().openapi(), indent=2))' > backend/openapi.json
 	cd frontend && npm run generate-api
+format:
+	cd frontend && npm run format
 e2e:
 	cd frontend && npm run e2e
 backup:

@@ -7,7 +7,8 @@ Include a focused regression test for behavior changes.
 ## Development
 
 The Docker quick start in README runs the app. For host-side development tools,
-install Python 3.12, Node 24.19+ (below 25), `uv` and `make`, then:
+install Python 3.12, Node 24.19+ (below 25, see `frontend/.nvmrc`; npm refuses other
+versions), `uv` and `make`, then:
 
 ```sh
 make dev-install
@@ -29,8 +30,14 @@ make test-frontend
 cd frontend && npm run build
 ```
 
+`make lint` also runs ESLint and the Prettier check on the frontend. Run `make format`
+to format frontend code before you commit. To hide the one-time formatting commit from
+`git blame`, run `git config blame.ignoreRevsFile .git-blame-ignore-revs`.
+
 GitHub Actions runs these checks without starting a live provider or handling real
-credentials. Integration tests (`make test-integration`) require a running stack.
+credentials. The Stack workflow also builds the Docker stack with password sign-in,
+then runs the integration tests and the browser tests against it. It runs on pull
+requests, pushes to `main` and on demand. Integration tests (`make test-integration`) require a running stack.
 Browser tests (`make e2e`) create, edit and delete data: use a separate disposable
 installation with password access enabled and the fictional test password from
 the test files. Never aim them at your personal collection.
