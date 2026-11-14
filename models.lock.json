@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "ocr": [
+    {
+      "repository": "PaddlePaddle/PP-OCRv5_mobile_det",
+      "revision": "0d63e78e2b680928f6b1747d76a08db6e645efb7",
+      "directory": "ocr/PP-OCRv5_mobile_det-0d63e78e2b68",
+      "files": [
+        "inference.json",
+        "inference.pdiparams",
+        "inference.yml"
+      ]
+    },
+    {
+      "repository": "PaddlePaddle/en_PP-OCRv5_mobile_rec",
+      "revision": "267c36e24c331595590fe7bd72bde2436fd286f2",
+      "directory": "ocr/en_PP-OCRv5_mobile_rec-267c36e24c33",
+      "files": [
+        "inference.json",
+        "inference.pdiparams",
+        "inference.yml"
+      ]
+    }
+  ],
+  "embeddings": [
+    {
+      "repository": "sentence-transformers/all-MiniLM-L6-v2",
+      "revision": "1110a243fdf4706b3f48f1d95db1a4f5529b4d41",
+      "directory": "embeddings/minilm-1110a243fdf4",
+      "files": [
+        "1_Pooling/config.json",
+        "config.json",
+        "config_sentence_transformers.json",
+        "model.safetensors",
+        "modules.json",
+        "sentence_bert_config.json",
+        "special_tokens_map.json",
+        "tokenizer.json",
+        "tokenizer_config.json",
+        "vocab.txt"
+      ]
+    },
+    {
+      "repository": "BAAI/bge-small-en-v1.5",
+      "revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+      "directory": "embeddings/bge-5c38ec7c405e",
+      "files": [
+        "1_Pooling/config.json",
+        "config.json",
+        "config_sentence_transformers.json",
+        "model.safetensors",
+        "modules.json",
+        "sentence_bert_config.json",
+        "special_tokens_map.json",
+        "tokenizer.json",
+        "tokenizer_config.json",
+        "vocab.txt"
+      ]
+    }
+  ]
+}

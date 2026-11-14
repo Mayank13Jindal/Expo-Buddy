@@ -1,0 +1,200 @@
+name: expo-buddy
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: '3'
+
+x-app: &app
+  image: expo-buddy-api:0.1.0
+  build:
+    context: .
+    dockerfile: backend/Dockerfile
+  user: '${APP_UID:?Run make init-dev or the storage setup first}:${APP_GID:?Set APP_GID}'
+  init: true
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
+  restart: unless-stopped
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  tmpfs: ['/tmp:size=256m,mode=1777']
+  logging: *logging
+  environment: &app-env
+    APP_URL: '${APP_URL:?Set APP_URL}'
+    PASSWORDLESS: '${PASSWORDLESS:-false}'
+    CHATGPT_CALLBACK_PORT: '${CHATGPT_CALLBACK_PORT:-1455}'
+    CHATGPT_CALLBACK_BIND: '0.0.0.0'
+    APP_TIMEZONE: '${APP_TIMEZONE:-UTC}'
+    DATABASE_HOST: db
+    DATABASE_NAME: ${DATABASE_NAME:-expo}
+    EXPORT_TTL_DAYS: ${EXPORT_TTL_DAYS:-7}
+    DATABASE_PASSWORD_FILE: /run/secrets/db_password
+    HOST_ID_FILE: /run/secrets/host_id
+    ASSETS_DIR: /data/assets
+    PREVIEWS_DIR: /data/previews
+    DB_DIR: /data/db
+    MODELS_DIR: /data/models
+    EXPORTS_DIR: /data/exports
+    BACKUP_DIR: /data/backups
+    ASSETS_VOLUME_ID: '${ASSETS_VOLUME_ID:?Run storage setup}'
+    PREVIEWS_VOLUME_ID: '${PREVIEWS_VOLUME_ID:?Run storage setup}'
+    DB_VOLUME_ID: '${DB_VOLUME_ID:?Run storage setup}'
+    MODELS_VOLUME_ID: '${MODELS_VOLUME_ID:?Run storage setup}'
+    EXPORTS_VOLUME_ID: '${EXPORTS_VOLUME_ID:?Run storage setup}'
+    BACKUP_VOLUME_ID: '${BACKUP_VOLUME_ID:?Run storage setup}'
+    ASSETS_FREE_FLOOR_BYTES: '${ASSETS_FREE_FLOOR_BYTES:-5368709120}'
+    STORAGE_CHECK_SECONDS: '${STORAGE_CHECK_SECONDS:-30}'
+    IMAGE_LIMIT_BYTES: '${IMAGE_LIMIT_BYTES:-104857600}'
+    PDF_LIMIT_BYTES: '${PDF_LIMIT_BYTES:-419430400}'
+    PDF_PAGE_LIMIT: '${PDF_PAGE_LIMIT:-200}'
+    OLLAMA_URL: '${OLLAMA_URL:-}'
+    OLLAMA_MODEL: '${OLLAMA_MODEL:-}'
+    OLLAMA_TIMEOUT_SECONDS: '${OLLAMA_TIMEOUT_SECONDS:-600}'
+    EMBEDDING_MODEL: '${EMBEDDING_MODEL:-minilm}'
+    NO_PROXY: localhost,127.0.0.1,api,db,worker,host.docker.internal
+    no_proxy: localhost,127.0.0.1,api,db,worker,host.docker.internal
+  secrets: [db_password, host_id, encryption_key]
+  volumes: &app-volumes
+    - type: bind
+      source: '${ASSETS_DIR:?Set ASSETS_DIR}'
+      target: /data/assets
+      bind: {create_host_path: false}
+    - type: bind
+      source: '${PREVIEWS_DIR:?Set PREVIEWS_DIR}'
+      target: /data/previews
+      bind: {create_host_path: false}
+    - type: bind
+      source: '${DB_DIR:?Set DB_DIR}'
+      target: /data/db
+      read_only: true
+      bind: {create_host_path: false}
+    - type: bind
+      source: '${MODELS_DIR:?Set MODELS_DIR}'
+      target: /data/models
+      bind: {create_host_path: false}
+    - type: bind
+      source: '${EXPORTS_DIR:?Set EXPORTS_DIR}'
+      target: /data/exports
+      bind: {create_host_path: false}
+    - type: bind
+      source: '${BACKUP_DIR:?Set BACKUP_DIR}'
+      target: /data/backups
+      bind: {create_host_path: false}
+
+services:
+  db:
+    image: pgvector/pgvector:0.8.7-pg18-bookworm@sha256:2358fcba361ed2233a5ed81b5fe4ca779ccb304120ce531a3bf51c0ed7e2bc11
+    user: '${APP_UID}:${APP_GID}'
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    shm_size: 256mb
+    tmpfs: ['/tmp:size=64m,mode=1777', '/var/run/postgresql:mode=1777']
+    logging: *logging
+    environment:
+      POSTGRES_USER: expo
+      POSTGRES_DB: ${DATABASE_NAME:-expo}
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+      PGDATA: /var/lib/postgresql/18/docker
+      DB_VOLUME_ID: '${DB_VOLUME_ID}'
+    entrypoint: [/bin/sh, /opt/expo/db-entrypoint.sh]
+    command: [postgres]
+    secrets: [db_password]
+    volumes:
+      - type: bind
+        source: '${DB_DIR}'
+        target: /var/lib/postgresql
+        bind: {create_host_path: false}
+      - ./deploy/db-entrypoint.sh:/opt/expo/db-entrypoint.sh:ro
+      - ./deploy/db-health.sh:/opt/expo/db-health.sh:ro
+    healthcheck:
+      test: [CMD, /bin/sh, /opt/expo/db-health.sh]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
+
+  api:
+    <<: *app
+    ports:
+      - '127.0.0.1:${CHATGPT_CALLBACK_PORT:-1455}:${CHATGPT_CALLBACK_PORT:-1455}'
+    command: [/bin/sh, -c, 'alembic upgrade head && exec uvicorn app.main:create_app --factory --host 0.0.0.0 --port 8000 --no-access-log']
+    depends_on:
+      db: {condition: service_healthy}
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health', timeout=5)"]
+      interval: 10s
+      timeout: 8s
+      retries: 6
+      start_period: 30s
+
+  worker:
+    <<: *app
+    image: expo-buddy-worker:0.1.0
+    build:
+      context: .
+      dockerfile: backend/worker.Dockerfile
+    command: [python, -m, app.worker.runner]
+    depends_on:
+      db: {condition: service_healthy}
+      api: {condition: service_started}
+    healthcheck:
+      test: [CMD, python, -m, app.worker.healthcheck]
+      interval: 10s
+      timeout: 8s
+      retries: 6
+      start_period: 30s
+
+  gateway:
+    image: expo-buddy-gateway:0.1.0
+    build:
+      context: .
+      dockerfile: deploy/gateway.Dockerfile
+    user: '${APP_UID}:${APP_GID}'
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: ['/tmp:size=32m,mode=1777']
+    logging: *logging
+    environment:
+      APP_URL: '${APP_URL}'
+      APP_HOST: '${APP_HOST:?Run storage setup}'
+      APP_AUTHORITY: '${APP_AUTHORITY:?Run storage setup}'
+      CADDY_TLS: '${CADDY_TLS:-internal}'
+      GATEWAY_BODY_LIMIT: '${GATEWAY_BODY_LIMIT:-423624704}'
+      NO_PROXY: localhost,127.0.0.1,api,db,worker,host.docker.internal
+      no_proxy: localhost,127.0.0.1,api,db,worker,host.docker.internal
+    ports:
+      - '${GATEWAY_BIND:-127.0.0.1}:${GATEWAY_HTTPS_PORT:-8443}:8443'
+      - '${GATEWAY_BIND:-127.0.0.1}:${GATEWAY_HTTP_PORT:-8080}:8080'
+    volumes:
+      - ./deploy/public-ca:/srv/public-ca:ro
+      - type: bind
+        source: '${SECRETS_DIR}/caddy-data'
+        target: /data
+        bind: {create_host_path: false}
+      - type: bind
+        source: '${SECRETS_DIR}/caddy-config'
+        target: /config
+        bind: {create_host_path: false}
+    depends_on:
+      api: {condition: service_healthy}
+    healthcheck:
+      test: [CMD, wget, -Y, 'off', -q, --spider, 'http://localhost:8080/_gateway-health']
+      interval: 15s
+      timeout: 8s
+      retries: 4
+      start_period: 15s
+
+secrets:
+  db_password:
+    file: '${SECRETS_DIR:?Set SECRETS_DIR}/database_password'
+  host_id:
+    file: '${SECRETS_DIR}/host_id'
+  encryption_key:
+    file: '${SECRETS_DIR}/encryption_key'
+

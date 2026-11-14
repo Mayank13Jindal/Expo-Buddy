@@ -1,0 +1,34 @@
+BEGIN:VCARD
+VERSION:3.0
+FN:Dev Example
+N:;Dev Example;;;
+ORG:FICTIONAL Example Solar Structures
+TITLE:=SUM(1)
+NOTE:FICTIONAL personal note\, deliberately selected for this sample.\nExam
+ ple second line.
+item1.TEL;TYPE=CELL:+910000000002
+item1.X-ABLabel:Mobile
+item2.TEL;TYPE=WORK:00123000456
+item2.X-ABLabel:Office
+item3.EMAIL;TYPE=WORK:person2@example.invalid
+item3.X-ABLabel:Work
+item4.URL;TYPE=WORK:https://example.invalid
+item4.X-ABLabel:Company
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+FN:Mira Example
+N:;Mira Example;;;
+ORG:FICTIONAL Example Solar Structures
+TITLE:Sales\, Example division
+NOTE:FICTIONAL personal note\, deliberately selected for this sample.\nExam
+ ple second line.
+item1.TEL;TYPE=CELL:+910000000001
+item1.X-ABLabel:Mobile
+item2.TEL;TYPE=WORK:00123000456
+item2.X-ABLabel:Office
+item3.EMAIL;TYPE=WORK:person1@example.invalid
+item3.X-ABLabel:Work
+item4.URL;TYPE=WORK:https://example.invalid
+item4.X-ABLabel:Company
+END:VCARD

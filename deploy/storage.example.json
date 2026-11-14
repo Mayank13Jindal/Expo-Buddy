@@ -1,0 +1,22 @@
+{
+  "uid": 1000,
+  "gid": 1000,
+  "app_url": "https://expo-server.example.ts.net",
+  "paths": {
+    "ASSETS": "/mnt/hdd/expo-buddy/originals",
+    "PREVIEWS": "/srv/ssd/expo-buddy/previews",
+    "DB": "/srv/ssd/expo-buddy/db",
+    "MODELS": "/srv/ssd/expo-buddy/models",
+    "EXPORTS": "/mnt/hdd/expo-buddy/exports",
+    "BACKUP": "/mnt/backup/expo-buddy"
+  },
+  "mounts": {
+    "ASSETS": "/mnt/hdd",
+    "PREVIEWS": "/srv/ssd",
+    "DB": "/srv/ssd",
+    "MODELS": "/srv/ssd",
+    "EXPORTS": "/mnt/hdd",
+    "BACKUP": "/mnt/backup"
+  }
+}
+

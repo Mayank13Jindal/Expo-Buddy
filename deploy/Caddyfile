@@ -1,0 +1,80 @@
+{
+    admin off
+    http_port 8080
+    https_port 8443
+    auto_https disable_redirects
+    default_sni {$APP_HOST}
+    skip_install_trust
+    renew_interval 1m
+    servers {
+        protocols h1 h2
+        timeouts {
+            read_body 30m
+            write 30m
+        }
+    }
+}
+
+(security) {
+    header {
+        Alt-Svc "clear"
+        Strict-Transport-Security "max-age=31536000"
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        Referrer-Policy same-origin
+        Permissions-Policy "camera=(self), microphone=(), geolocation=()"
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; font-src 'self'; worker-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+        -Server
+    }
+}
+
+:8080 {
+    route {
+        respond /_gateway-health 200
+        handle /expo-buddy-root.crt {
+            root * /srv/public-ca
+            header Content-Type application/x-x509-ca-cert
+            header Content-Disposition "attachment; filename=expo-buddy-root.crt"
+            file_server
+        }
+        redir {$APP_URL}{uri} 308
+    }
+}
+
+https://{$APP_HOST}:8443, https://:8443 {
+    tls {$CADDY_TLS:internal}
+    import security
+    @wrongHost not header Host {$APP_AUTHORITY}
+    redir @wrongHost {$APP_URL}{uri} 308
+
+    request_body {
+        max_size {$GATEWAY_BODY_LIMIT:423624704}
+    }
+    handle /api/v1/app-repair {
+        root * /srv
+        rewrite * /app-repair.html
+        header Cache-Control "no-store"
+        file_server
+    }
+    @appShell path / /index.html /sw.js /app-repair.js /manifest.webmanifest
+    header @appShell Cache-Control "no-cache, must-revalidate"
+    handle /api/* {
+        reverse_proxy api:8000 {
+            flush_interval -1
+            transport http {
+                response_header_timeout 30m
+            }
+        }
+    }
+    handle /mcp* {
+        reverse_proxy api:8000 {
+            flush_interval -1
+        }
+    }
+    handle {
+        root * /srv
+        try_files {path} /index.html
+        file_server
+    }
+}
+

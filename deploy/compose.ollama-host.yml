@@ -1,0 +1,9 @@
+# Linux Docker Engine: use when Ollama runs on this same host.
+# Keep any existing working host-access override instead if already configured.
+services:
+  api:
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+  worker:
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
