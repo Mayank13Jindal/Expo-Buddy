@@ -21,7 +21,9 @@ test('export wizard freezes documents, orders fields and downloads a ZIP', async
   await expect(allow).toBeVisible()
   await allow.check()
   await page.getByRole('button', { name: 'Generate export', exact: true }).click()
-  await expect(page.locator('.toast')).toContainText('Export started. Download it below when ready.')
+  await expect(page.locator('.toast')).toContainText(
+    'Export started. Download it below when ready.',
+  )
   const latest = page.locator('.recent-row').first()
   await expect(latest.locator('.badge')).toHaveText('ready', { timeout: 45000 })
   const link = latest.getByRole('link', { name: 'Download', exact: true })

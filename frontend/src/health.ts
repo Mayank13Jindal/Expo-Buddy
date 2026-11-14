@@ -9,8 +9,15 @@ export interface Health {
 }
 
 export function statusLabel(status: string): string {
-  return ({ ready: 'Available', unavailable: 'Unavailable', paused: 'Paused',
-    stale: 'Not responding', migration_needed: 'Update needed' } as Record<string, string>)[status]
-    ?? 'Checking'
+  return (
+    (
+      {
+        ready: 'Available',
+        unavailable: 'Unavailable',
+        paused: 'Paused',
+        stale: 'Not responding',
+        migration_needed: 'Update needed',
+      } as Record<string, string>
+    )[status] ?? 'Checking'
+  )
 }
-
