@@ -67,6 +67,9 @@ jobs:
             -d "{\"password\": \"$E2E_PASSWORD\"}"
       - name: Browser tests
         working-directory: frontend
+        env:
+          # Playwright's own Node requests (page.request, route.fetch) need the CA too.
+          NODE_EXTRA_CA_CERTS: ${{ github.workspace }}/.secrets/caddy-data/caddy/pki/authorities/local/root.crt
         run: |
           npm ci
           npx playwright install --with-deps chromium
