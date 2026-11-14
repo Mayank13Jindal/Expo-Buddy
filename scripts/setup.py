@@ -39,7 +39,7 @@ def main() -> int:
     if not args.development and not args.config:
         parser.error("Use --config for custom storage, or --local for single-host storage")
     config = json.loads(args.config.read_text()) if args.config else {}
-    if not isinstance(config.get("passwordless", True), bool):
+    if not isinstance(config.get("passwordless", False), bool):
         parser.error("passwordless must be true or false")
     uid, gid = int(config.get("uid", os.getuid())), int(config.get("gid", os.getgid()))
     if uid == 0 or gid == 0:
@@ -116,7 +116,7 @@ def main() -> int:
     values = {
         "APP_URL": app_url, "APP_HOST": url.hostname, "APP_AUTHORITY": url.netloc,
         "APP_UID": str(uid), "APP_GID": str(gid), "APP_TIMEZONE": config.get("timezone", "UTC"),
-        "PASSWORDLESS": str(config.get("passwordless", True)).lower(),
+        "PASSWORDLESS": str(config.get("passwordless", False)).lower(),
         "GATEWAY_BIND": "127.0.0.1" if args.development else "0.0.0.0",
         "GATEWAY_HTTPS_PORT": str(url.port or 443), "GATEWAY_HTTP_PORT": "8080",
         "CADDY_TLS": "internal", "SECRETS_DIR": str(secret_dir),

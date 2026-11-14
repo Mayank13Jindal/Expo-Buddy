@@ -36,6 +36,14 @@ def test_local_setup_generates_private_config_and_is_idempotent(tmp_path, monkey
     assert (tmp_path / '.secrets/encryption_key').read_bytes() == secret
 
 
+def test_local_setup_requires_a_password_by_default(tmp_path, monkeypatch):
+    monkeypatch.setattr(setup.os, 'getuid', lambda: 1000)
+    monkeypatch.setattr(setup.os, 'getgid', lambda: 1000)
+    monkeypatch.setattr(sys, 'argv', ['setup', '--local', '--project', str(tmp_path)])
+    assert setup.main() == 0
+    assert read_env(tmp_path / '.env')['PASSWORDLESS'] == 'false'
+
+
 def test_setup_rejects_string_passwordless_before_writing(tmp_path, monkeypatch):
     config = tmp_path / 'config.json'
     config.write_text(json.dumps({'passwordless': 'false'}))

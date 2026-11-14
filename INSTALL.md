@@ -42,7 +42,6 @@ Rules:
 - Never delete or overwrite .env, .secrets or .local. They hold my data and keys.
 - Never disable TLS/certificate checks to make something work.
 - Do not change GATEWAY_BIND or open the app to my network unless I ask.
-  The app has no password by default.
 - At the end, give me a short summary: what you did, the app address, and anything
   that failed.
 ````
@@ -169,21 +168,23 @@ Only share `root.crt`. Never share the private key next to it.
 
 Go to **https://localhost:8443**.
 
-### 9. Optional: add a password
+### 9. Create your password
 
-By default there is no password. That is fine while the app is only on this
-computer. **Before** you open it to your phone or Wi-Fi:
+The first time you open the app, it asks you to create a password. Keep it safe.
+If you forget it, reset it on the server:
 
 ```sh
-docker compose exec api python -m app.core.reset_password   # set a password
-# then in .env change PASSWORDLESS=true to PASSWORDLESS=false
-docker compose up -d --wait
+docker compose exec api python -m app.core.reset_password
 ```
+
+Set up before password sign-in became the default? If `.env` has
+`PASSWORDLESS=true`, set a password with the command above, change it to
+`PASSWORDLESS=false`, then run `docker compose up -d --wait`.
 
 ### 10. Optional: use it on your phone
 
 See [docs/tailscale.md](docs/tailscale.md) for phone access and [docs/pwa.md](docs/pwa.md)
-to install it as an app. Turn on a password first (step 9).
+to install it as an app. Keep password sign-in on (step 9).
 
 ---
 

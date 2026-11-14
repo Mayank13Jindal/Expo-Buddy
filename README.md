@@ -61,7 +61,6 @@ Rules:
 - Never delete or overwrite .env, .secrets or .local. They hold my data and keys.
 - Never disable TLS/certificate checks to make something work.
 - Do not change GATEWAY_BIND or open the app to my network unless I ask.
-  The app has no password by default.
 - At the end, give me a short summary: what you did, the app address, and anything
   that failed.
 ````
@@ -135,19 +134,16 @@ private key or disable certificate verification.
 
 ### Password and phone access
 
-The default setup binds to this computer and opens without an app password.
-Anyone who can reach the app has full access, including settings. Before opening
-it to your phone or a shared network, set a password:
+The first time you open the app, it asks you to create a password. If you forget
+it, reset it on the server:
 
 ```sh
 docker compose exec api python -m app.core.reset_password
 ```
 
-Then change `PASSWORDLESS=true` to `PASSWORDLESS=false` in `.env` and apply it:
-
-```sh
-docker compose up -d --wait
-```
+Installations set up before password sign-in became the default keep their
+`.env` setting. If yours has `PASSWORDLESS=true`, set a password with the command
+above, change it to `PASSWORDLESS=false`, then run `docker compose up -d --wait`.
 
 See [HTTPS and phone setup](docs/setup.md#https-and-phone-access). Provider sign-in
 is separate, and cloud processing starts off.
